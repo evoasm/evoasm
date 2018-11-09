@@ -70,8 +70,10 @@ class ProgramSetOutput(programSet: ProgramSet, val arity: Int = 1) {
 }
 
 
-class Interpreter(val programSet: ProgramSet, val input: ProgramInput, val output: ProgramSetOutput)  {
+class Interpreter(val programSet: ProgramSet, val input: ProgramInput, val output: ProgramSetOutput, val options: Interpreter.Options = DEFAULT_OPTIONS)  {
 
+    data class Options(val x: Int) {
+    }
 
     companion object {
         private val INSTRUCTIONS = setOf(
@@ -79,6 +81,8 @@ class Interpreter(val programSet: ProgramSet, val input: ProgramInput, val outpu
                 SubR64Rm64,
                 ImulR64Rm64
                                         )
+
+        val DEFAULT_OPTIONS = Options(0)
 
         private const val INSTRUCTION_ALIGNMENT = 8 // bytes
         private const val OPCODE_SIZE = Short.SIZE_BYTES // bytes
@@ -93,9 +97,95 @@ class Interpreter(val programSet: ProgramSet, val input: ProgramInput, val outpu
         private val COUNTERS_REGISTER = R12
         private val SCRATCH_REGISTER2 = R11
         private val GP_REGISTERS = listOf(RAX, RBX, RCX, RDI, RSI, R8, R9, R10)
-        private val INSTRUCTION_COUNT = INSTRUCTIONS.size + GP_REGISTERS.size * GP_REGISTERS.size - GP_REGISTERS.size
-        val RETURN = INSTRUCTION_COUNT.toShort()
     }
+
+    private class InterpreterInstructionParameters(val interpreter: Interpreter) : InstructionParameters {
+        override fun getGpRegister8(index: Int, isRead: Boolean, isWritten: Boolean): GpRegister8 {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun getGpRegister16(index: Int, isRead: Boolean, isWritten: Boolean): GpRegister16 {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun getGpRegister32(index: Int, isRead: Boolean, isWritten: Boolean): GpRegister32 {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun getGpRegister64(index: Int, isRead: Boolean, isWritten: Boolean): GpRegister64 {
+            return GP_REGISTERS[index]
+        }
+
+        override fun getMmRegister(index: Int, isRead: Boolean, isWritten: Boolean): MmRegister {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun getXmmRegister(index: Int, isRead: Boolean, isWritten: Boolean): XmmRegister {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun getYmmRegister(index: Int, isRead: Boolean, isWritten: Boolean): YmmRegister {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun getZmmRegister(index: Int, isRead: Boolean, isWritten: Boolean): ZmmRegister {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun getAddress8(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression8 {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun getAddress16(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression16 {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun getAddress32(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression32 {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun getAddress64(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression64 {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun getAddress128(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression128 {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun getAddress256(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression256 {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun getAddress512(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression512 {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun getVectorAddress(index: Int, isRead: Boolean, isWritten: Boolean): VectorAddressExpression {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun useSibd(): Boolean {
+            return false
+        }
+
+        override fun getByteImmediate(index: Int): Byte {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun getShortImmediate(index: Int): Short {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun getIntImmediate(index: Int): Int {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun getLongImmediate(index: Int): Long {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+    }
+
 
     private var haltLinkPoint: Assembler.JumpLinkPoint? = null
     private var firstInstructionLinkPoint: Assembler.LongLinkPoint? = null
@@ -108,6 +198,8 @@ class Interpreter(val programSet: ProgramSet, val input: ProgramInput, val outpu
 
     private var firstInstructionOffset: Int = -1
     private val firstOutputAddress: Int
+
+    private val instructionParameters = InterpreterInstructionParameters(this)
 
     init {
         firstOutputAddress = output.address.toInt()
@@ -238,12 +330,21 @@ class Interpreter(val programSet: ProgramSet, val input: ProgramInput, val outpu
             emitHaltInstruction()
             emitEndInstruction()
 
-            emitAddInstructions()
-            emitSubInstructions()
-            emitMulInstructions()
-            emitMoveInstructions()
-            emitGpZeroAllInstruction()
+            emitInstructions()
+//            emitAddInstructions()
+//            emitSubInstructions()
+//            emitMulInstructions()
+//            emitMoveInstructions()
+//            emitGpZeroAllInstruction()
             emitInterpreterEpilog()
+        }
+    }
+
+    private fun emitInstructions() {
+        INSTRUCTIONS.forEach {
+            emitInstruction {
+                it.encode(buffer.byteBuffer, instructionParameters)
+            }
         }
     }
 
