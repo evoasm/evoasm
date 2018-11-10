@@ -1,8 +1,10 @@
 package evoasm.x64
 
 import kasm.*
+import kasm.ext.toEnumSet
 import kasm.x64.*
 import kasm.x64.GpRegister64.*
+import java.lang.IllegalArgumentException
 import java.nio.ByteBuffer
 
 inline class InterpreterInstruction(val index: UShort) {
@@ -70,24 +72,11 @@ class ProgramSetOutput(programSet: ProgramSet, val arity: Int = 1) {
 }
 
 
-class Interpreter(val programSet: ProgramSet, val input: ProgramInput, val output: ProgramSetOutput, val options: Interpreter.Options = DEFAULT_OPTIONS)  {
-
-    data class Options(val x: Int) {
-    }
+class Interpreter(val programSet: ProgramSet, val input: ProgramInput, val output: ProgramSetOutput, val options: InterpreterOptions = InterpreterOptions.DEFAULT)  {
 
     companion object {
-        private val INSTRUCTIONS = setOf(
-                AddR64Rm64,
-                SubR64Rm64,
-                ImulR64Rm64
-                                        )
-
-        val DEFAULT_OPTIONS = Options(0)
-
         private const val INSTRUCTION_ALIGNMENT = 8 // bytes
         private const val OPCODE_SIZE = Short.SIZE_BYTES // bytes
-        private const val INTERPRETER_PROLOG_SIZE = 32 // bytes
-        private const val MAX_INSTRUCTIONS = 10240
 
         private const val INTERNAL_INSTRUCTION_COUNT = 2
 
@@ -97,6 +86,48 @@ class Interpreter(val programSet: ProgramSet, val input: ProgramInput, val outpu
         private val COUNTERS_REGISTER = R12
         private val SCRATCH_REGISTER2 = R11
         private val GP_REGISTERS = listOf(RAX, RBX, RCX, RDI, RSI, R8, R9, R10)
+        private val XMM_REGISTERS = XmmRegister.values().filter { it.isSupported() }.toList()
+        private val YMM_REGISTERS = YmmRegister.values().filter { it.isSupported() }.toList()
+    }
+
+    private class InterpreterInstructionTracer(val interpreter: Interpreter) : InstructionTracer {
+
+        private val gpRegisters = GP_REGISTERS.toEnumSet()
+        private val xmmRegisters = XMM_REGISTERS.toEnumSet()
+        private val ymmRegisters = YMM_REGISTERS.toEnumSet()
+
+        private fun checkRegister(register: Register) {
+            check(register in gpRegisters || register in xmmRegisters || register in ymmRegisters, {"invalid register ${register}"})
+        }
+
+        override fun traceWrite(register: Register, implicit: Boolean, range: BitRange?, always: Boolean) {
+            checkRegister(register)
+        }
+
+        override fun traceWrite(addressExpression: AddressExpression) {
+            throw IllegalArgumentException()
+        }
+
+        override fun traceRead(register: Register, implicit: Boolean, range: BitRange?) {
+            checkRegister(register)
+        }
+
+        override fun traceRead(addressExpression: AddressExpression) {
+            throw IllegalArgumentException()
+        }
+
+        override fun traceRead(addressExpression: VectorAddressExpression) {
+            throw IllegalArgumentException()
+        }
+
+        override fun traceRead(immediate: Long, implicit: Boolean, size: BitSize?) {
+
+        }
+
+        override fun traceRead(rflag: Rflag) {}
+        override fun traceWrite(rflag: Rflag, always: Boolean) {}
+        override fun traceRead(mxcsrFlag: MxcsrFlag, always: Boolean) {}
+        override fun traceWrite(mxcsrFlag: MxcsrFlag, always: Boolean) {}
     }
 
     private class InterpreterInstructionParameters(val interpreter: Interpreter) : InstructionParameters {
@@ -121,11 +152,11 @@ class Interpreter(val programSet: ProgramSet, val input: ProgramInput, val outpu
         }
 
         override fun getXmmRegister(index: Int, isRead: Boolean, isWritten: Boolean): XmmRegister {
-            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+            return XMM_REGISTERS[index]
         }
 
         override fun getYmmRegister(index: Int, isRead: Boolean, isWritten: Boolean): YmmRegister {
-            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+            return YMM_REGISTERS[index]
         }
 
         override fun getZmmRegister(index: Int, isRead: Boolean, isWritten: Boolean): ZmmRegister {
@@ -200,6 +231,7 @@ class Interpreter(val programSet: ProgramSet, val input: ProgramInput, val outpu
     private val firstOutputAddress: Int
 
     private val instructionParameters = InterpreterInstructionParameters(this)
+    private val instructionTracer = InterpreterInstructionTracer(this)
 
     init {
         firstOutputAddress = output.address.toInt()
@@ -228,6 +260,14 @@ class Interpreter(val programSet: ProgramSet, val input: ProgramInput, val outpu
     private fun emitHaltInstruction() {
         emitInstruction(dispatch = false) {
             haltLinkPoint = assembler.jmp()
+        }
+    }
+
+    private fun emitRflagsReset() {
+        with(assembler) {
+            pushfq()
+            mov(AddressExpression64(RSP), 0)
+            popfq()
         }
     }
 
@@ -303,6 +343,7 @@ class Interpreter(val programSet: ProgramSet, val input: ProgramInput, val outpu
         val interpreter = this
         with(assembler) {
             // let IP point to first opcode
+            emitRflagsReset()
             mov(IP_REGISTER, programSet.address.toInt())
             firstInstructionLinkPoint = mov(FIRST_INSTRUCTION_ADDRESS_REGISTER)
             mov(COUNTERS_REGISTER, 0)
@@ -341,9 +382,9 @@ class Interpreter(val programSet: ProgramSet, val input: ProgramInput, val outpu
     }
 
     private fun emitInstructions() {
-        INSTRUCTIONS.forEach {
+        options.instructions.forEach {
             emitInstruction {
-                it.encode(buffer.byteBuffer, instructionParameters)
+                it.encode(buffer.byteBuffer, instructionParameters, tracer = instructionTracer)
             }
         }
     }
