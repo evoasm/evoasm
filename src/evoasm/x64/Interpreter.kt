@@ -104,8 +104,7 @@ class Interpreter(val programSet: ProgramSet, val input: ProgramInput, val outpu
 
     }
 
-    private class InterpreterInstructionTracer(val interpreter: Interpreter) : InstructionTracer {
-
+    private val instructionTracer = object : InstructionTracer {
         private val gpRegisters = GP_REGISTERS.toEnumSet()
         private val xmmRegisters = XMM_REGISTERS.toEnumSet()
         private val ymmRegisters = YMM_REGISTERS.toEnumSet()
@@ -124,6 +123,7 @@ class Interpreter(val programSet: ProgramSet, val input: ProgramInput, val outpu
 
         override fun traceWrite(register: Register, implicit: Boolean, range: BitRange?, always: Boolean) {
             checkRegister(register)
+            if(implicit) useRegister(register)
         }
 
         override fun traceWrite(addressExpression: AddressExpression) {
@@ -132,6 +132,8 @@ class Interpreter(val programSet: ProgramSet, val input: ProgramInput, val outpu
 
         override fun traceRead(register: Register, implicit: Boolean, range: BitRange?) {
             checkRegister(register)
+
+            if(implicit) useRegister(register)
         }
 
         override fun traceRead(addressExpression: AddressExpression) {
@@ -146,42 +148,148 @@ class Interpreter(val programSet: ProgramSet, val input: ProgramInput, val outpu
 
         }
 
+        override fun beginTracing() {
+            usedRegisters.clear()
+        }
+
         override fun traceRead(rflag: Rflag) {}
         override fun traceWrite(rflag: Rflag, always: Boolean) {}
         override fun traceRead(mxcsrFlag: MxcsrFlag, always: Boolean) {}
         override fun traceWrite(mxcsrFlag: MxcsrFlag, always: Boolean) {}
     }
 
-    private class InterpreterInstructionParameters(val interpreter: Interpreter) : InstructionParameters {
 
-        private val random = Random.Default
+    private val traceInstructionParameters = object : InstructionParameters {
+
 
         override fun getGpRegister8(index: Int, isRead: Boolean, isWritten: Boolean): GpRegister8 {
-            return GP_REGISTERS[index].subRegister8
+            return GP_REGISTERS[0].subRegister8
         }
 
         override fun getGpRegister16(index: Int, isRead: Boolean, isWritten: Boolean): GpRegister16 {
-            return GP_REGISTERS[index].subRegister16
+            return GP_REGISTERS[0].subRegister16
         }
 
         override fun getGpRegister32(index: Int, isRead: Boolean, isWritten: Boolean): GpRegister32 {
-            return GP_REGISTERS[index].subRegister32
+            return GP_REGISTERS[0].subRegister32
         }
 
         override fun getGpRegister64(index: Int, isRead: Boolean, isWritten: Boolean): GpRegister64 {
-            return GP_REGISTERS[index]
+            return GP_REGISTERS[0]
         }
 
         override fun getMmRegister(index: Int, isRead: Boolean, isWritten: Boolean): MmRegister {
-            return MM_REGISTERS[index]
+            return MM_REGISTERS[0]
         }
 
         override fun getXmmRegister(index: Int, isRead: Boolean, isWritten: Boolean): XmmRegister {
-            return XMM_REGISTERS[index]
+            return XMM_REGISTERS[0]
         }
 
         override fun getYmmRegister(index: Int, isRead: Boolean, isWritten: Boolean): YmmRegister {
-            return YMM_REGISTERS[index]
+            return YMM_REGISTERS[0]
+        }
+
+        override fun getZmmRegister(index: Int, isRead: Boolean, isWritten: Boolean): ZmmRegister {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun getAddress8(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression8 {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun getAddress16(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression16 {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun getAddress32(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression32 {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun getAddress64(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression64 {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun getAddress128(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression128 {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun getAddress256(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression256 {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun getAddress512(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression512 {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun getVectorAddress(index: Int, isRead: Boolean, isWritten: Boolean): VectorAddressExpression {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun useSibd(): Boolean {
+            return false
+        }
+
+        override fun getByteImmediate(index: Int): Byte {
+            return 0;
+        }
+
+        override fun getShortImmediate(index: Int): Short {
+            return 0;
+        }
+
+        override fun getIntImmediate(index: Int): Int {
+            return 0;
+        }
+
+        override fun getLongImmediate(index: Int): Long {
+            return 0;
+        }
+
+    }
+
+
+    private val instructionParameters = object : InstructionParameters {
+
+        private val random = Random.Default
+
+        private fun <T: Register> findUnusedRegisterAndUse(registers: List<T>) : T {
+            return findUnusedRegister(registers).also { useRegister(it) }
+        }
+
+        private fun <T : Register> findUnusedRegister(registers: List<T>): T {
+            registers.forEach {
+                if(it !in usedRegisters) return it
+            }
+            throw RuntimeException()
+        }
+
+        override fun getGpRegister8(index: Int, isRead: Boolean, isWritten: Boolean): GpRegister8 {
+            return findUnusedRegisterAndUse(GP_REGISTERS).subRegister8
+        }
+
+        override fun getGpRegister16(index: Int, isRead: Boolean, isWritten: Boolean): GpRegister16 {
+            return findUnusedRegisterAndUse(GP_REGISTERS).subRegister16
+        }
+
+        override fun getGpRegister32(index: Int, isRead: Boolean, isWritten: Boolean): GpRegister32 {
+            return findUnusedRegisterAndUse(GP_REGISTERS).subRegister32
+        }
+
+        override fun getGpRegister64(index: Int, isRead: Boolean, isWritten: Boolean): GpRegister64 {
+            return findUnusedRegisterAndUse(GP_REGISTERS)
+        }
+
+        override fun getMmRegister(index: Int, isRead: Boolean, isWritten: Boolean): MmRegister {
+            return findUnusedRegisterAndUse(MM_REGISTERS)
+        }
+
+        override fun getXmmRegister(index: Int, isRead: Boolean, isWritten: Boolean): XmmRegister {
+            return findUnusedRegisterAndUse(XMM_REGISTERS)
+        }
+
+        override fun getYmmRegister(index: Int, isRead: Boolean, isWritten: Boolean): YmmRegister {
+            return findUnusedRegisterAndUse(YMM_REGISTERS)
         }
 
         override fun getZmmRegister(index: Int, isRead: Boolean, isWritten: Boolean): ZmmRegister {
@@ -245,18 +353,22 @@ class Interpreter(val programSet: ProgramSet, val input: ProgramInput, val outpu
 
     private var haltLinkPoint: Assembler.JumpLinkPoint? = null
     private var firstInstructionLinkPoint: Assembler.LongLinkPoint? = null
-    private val buffer = NativeBuffer(1024 * 15, CodeModel.SMALL)
+    private val buffer = NativeBuffer(1024 * 30, CodeModel.SMALL)
     private val assembler = Assembler(buffer)
 
     private var instructionCounter: Int = 0
     private var instructions = UShortArray(1024)
 
 
+    private val usedRegisters = mutableSetOf<Register>()
+
     private var firstInstructionOffset: Int = -1
     private val firstOutputAddress: Int
 
-    private val instructionParameters = InterpreterInstructionParameters(this)
-    private val instructionTracer = InterpreterInstructionTracer(this)
+//    private val instructionParameters = InterpreterInstructionParameters(this)
+//    private val instructionTracer = InterpreterInstructionTracer(this)
+
+
 
     init {
         firstOutputAddress = output.address.toInt()
@@ -279,6 +391,7 @@ class Interpreter(val programSet: ProgramSet, val input: ProgramInput, val outpu
     }
 
     fun getInstruction(opcode: Int): InterpreterInstruction {
+        require(opcode < instructionCounter, {"invalid opcode $opcode (max opcode is $instructionCounter)"})
         return InterpreterInstruction(instructions[opcode + INTERNAL_INSTRUCTION_COUNT].toUShort());
     }
 
@@ -286,6 +399,19 @@ class Interpreter(val programSet: ProgramSet, val input: ProgramInput, val outpu
         emitInstruction(dispatch = false) {
             haltLinkPoint = assembler.jmp()
         }
+    }
+
+    private fun useRegister(register: Register) {
+        // e.g. AX should use RAX
+        // NOTE: XMM and YMM are kept separate, since there are no instruction (?) that mixes
+        // XMM and YMM operands
+        val normalizedRegister = if(register is GpRegister && register is SubRegister<*, *>) {
+            register.topLevelRegister
+        } else {
+            register
+        }
+
+        usedRegisters.add(normalizedRegister)
     }
 
     private fun emitRflagsReset() {
@@ -410,37 +536,65 @@ class Interpreter(val programSet: ProgramSet, val input: ProgramInput, val outpu
 
 
     private fun emitInstructions() {
+        println("emitting ${options.instructions.size} instructions")
         options.instructions.forEach {
             emitInstruction {
                 if(it in DIV_INSTRUCTIONS && options.safeDivision) {
-                    val divisorRegister = GP_REGISTERS[0]
-
-                    when(it) {
-                        is IdivRm8Ax, is DivRm8Ax -> {
-                            assembler.xor(GpRegister16.AX, GpRegister16.AX)
-                        }
-                        is IdivRm16AxDx, is DivRm16AxDx -> {
-                            assembler.xor(GpRegister16.AX, GpRegister16.AX)
-                            assembler.xor(GpRegister16.DX, GpRegister16.DX)
-                        }
-                        is IdivRm32EdxEax, is DivRm32EdxEax -> {
-                            assembler.xor(GpRegister32.EAX, GpRegister32.EAX)
-                            assembler.xor(GpRegister32.EDX, GpRegister32.EDX)
-                        }
-                        is IdivRm64RdxRax, is DivRm64RdxRax -> {
-                            assembler.xor(GpRegister64.RAX, GpRegister64.RAX)
-                            assembler.xor(GpRegister64.RDX, GpRegister64.RDX)
-                        }
-                    }
-                    assembler.test(divisorRegister, divisorRegister)
-                    val linkPoint = assembler.je()
-                    it.encode(buffer.byteBuffer, instructionParameters, tracer = instructionTracer)
-                    assembler.link(linkPoint)
+                    emitDivInstruction(it)
                 } else {
-                    it.encode(buffer.byteBuffer, instructionParameters, tracer = instructionTracer)
+                    it.trace(instructionTracer, traceInstructionParameters)
+                    it.encode(buffer.byteBuffer, instructionParameters)
                 }
             }
         }
+    }
+
+    private fun emitDivInstruction(instruction: Instruction) {
+        val divisorRegister = GP_REGISTERS[1]
+
+        when (instruction) {
+            is IdivRm8Ax, is DivRm8Ax           -> {
+                assembler.xor(GpRegister16.AX, GpRegister16.AX)
+                assembler.test(divisorRegister.subRegister8, divisorRegister.subRegister8)
+            }
+            is IdivRm16AxDx, is DivRm16AxDx     -> {
+                assembler.xor(GpRegister16.AX, GpRegister16.AX)
+                assembler.xor(GpRegister16.DX, GpRegister16.DX)
+                assembler.test(divisorRegister.subRegister16, divisorRegister.subRegister16)
+            }
+            is IdivRm32EdxEax, is DivRm32EdxEax -> {
+                assembler.xor(GpRegister32.EAX, GpRegister32.EAX)
+                assembler.xor(GpRegister32.EDX, GpRegister32.EDX)
+                assembler.test(divisorRegister.subRegister32, divisorRegister.subRegister32)
+                divisorRegister.subRegister32
+            }
+            is IdivRm64RdxRax, is DivRm64RdxRax -> {
+                assembler.xor(RAX, RAX)
+                assembler.xor(RDX, RDX)
+                assembler.test(divisorRegister, divisorRegister)
+            }
+            else                                -> {
+                throw RuntimeException()
+            }
+        }
+
+        val linkPoint = assembler.je()
+
+        when (instruction) {
+            is R8mInstruction  -> {
+                instruction.encode(assembler.buffer, divisorRegister.subRegister8)
+            }
+            is R16mInstruction -> {
+                instruction.encode(assembler.buffer, divisorRegister.subRegister16)
+            }
+            is R32mInstruction -> {
+                instruction.encode(assembler.buffer, divisorRegister.subRegister32)
+            }
+            is R64mInstruction -> {
+                instruction.encode(assembler.buffer, divisorRegister)
+            }
+        }
+        assembler.link(linkPoint)
     }
 
 
@@ -529,6 +683,7 @@ class Interpreter(val programSet: ProgramSet, val input: ProgramInput, val outpu
     }
 
     fun run() {
+        println("instruction counter: $instructionCounter")
         println("running address is ${buffer.address}")
         println("byte code address is ${programSet.byteBuffer.address}")
         println("output address is ${output.address}/${output.size}")
