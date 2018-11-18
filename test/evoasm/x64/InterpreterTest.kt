@@ -1,8 +1,11 @@
 package evoasm.x64
 
+import kasm.x64.AddRm64R64
 import org.junit.jupiter.api.Test
 import java.util.concurrent.TimeUnit
+import kotlin.random.Random
 import kotlin.system.measureNanoTime
+import kotlin.test.assertEquals
 
 internal class InterpreterTest {
 
@@ -16,7 +19,7 @@ internal class InterpreterTest {
         println(options_.instructions.size)
         val options = InterpreterOptions(instructions = options_.instructions)
         println(options.instructions.last())
-        val programSet = ProgramSet(1, options.instructions.size)
+        val programSet = ProgramSet(1000, options.instructions.size)
         val programSetOutput = ProgramSetOutput(programSet)
         val interpreter = Interpreter(programSet, programInput, programSetOutput, options = options)
         for(i in 0 until programSet.size) {
@@ -25,18 +28,36 @@ internal class InterpreterTest {
             }
         }
 
-        val nanoTime = measureNanoTime {
-                interpreter.run()
+        val buffer = ShortArray(programSet.byteBuffer.capacity() / Short.SIZE_BYTES)
+        programSet.byteBuffer.asShortBuffer().get(buffer)
+        println("byte code")
+        println(buffer.contentToString())
+        println("/byte code")
+
+        val measurements = interpreter.runAndMeasure()
+        println(measurements)
+
+        println("Output: ${programSetOutput.getLong(0, 0)}")
+    }
+
+    @Test
+    fun add() {
+        val programSize = 10_000
+        val expectedOutput = programSize.toLong()
+        val programInput = ProgramInput(2)
+        programInput.set(0, 0x0L)
+        programInput.set(1, 0x1L)
+        val options = InterpreterOptions.DEFAULT
+        val programSet = ProgramSet(1, programSize)
+        val programSetOutput = ProgramSetOutput(programSet)
+        val interpreter = Interpreter(programSet, programInput, programSetOutput, options = options)
+        for (j in 0 until programSet.programSize) {
+           programSet.setInstruction(0, j, interpreter.getInstruction(AddRm64R64)!!)
         }
 
-        val elapsedSeconds = nanoTime / 1E9.toDouble()
-        println("$elapsedSeconds seconds")
-        println("${programSet.instructionCount / elapsedSeconds} ips")
-
-        println(programSetOutput.getLong(0, 0))
-
-//        val program = ProgramSet()
-//        val interpreter = Interpreter()
-//        interpreter.run(program)
+        val measurements = interpreter.runAndMeasure()
+        println(measurements)
+        val output = programSetOutput.getLong(0, 0)
+        assertEquals(expectedOutput, output)
     }
 }

@@ -7,6 +7,7 @@ import kasm.x64.GpRegister64.*
 import java.lang.IllegalArgumentException
 import java.nio.ByteBuffer
 import kotlin.random.Random
+import kotlin.system.measureNanoTime
 
 inline class InterpreterInstruction(val index: UShort) {
 
@@ -152,10 +153,10 @@ class Interpreter(val programSet: ProgramSet, val input: ProgramInput, val outpu
             usedRegisters.clear()
         }
 
-        override fun traceRead(rflag: Rflag) {}
-        override fun traceWrite(rflag: Rflag, always: Boolean) {}
-        override fun traceRead(mxcsrFlag: MxcsrFlag, always: Boolean) {}
-        override fun traceWrite(mxcsrFlag: MxcsrFlag, always: Boolean) {}
+        override fun traceRead(rflag: RflagsField) {}
+        override fun traceWrite(rflag: RflagsField, always: Boolean) {}
+        override fun traceRead(mxcsrFlag: MxcsrField) {}
+        override fun traceWrite(mxcsrFlag: MxcsrField, always: Boolean) {}
     }
 
 
@@ -194,35 +195,61 @@ class Interpreter(val programSet: ProgramSet, val input: ProgramInput, val outpu
             TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
         }
 
-        override fun getAddress8(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression8 {
+        override fun getAddressExpression8(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression8 {
             TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
         }
 
-        override fun getAddress16(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression16 {
+        override fun getAddressExpression16(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression16 {
             TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
         }
 
-        override fun getAddress32(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression32 {
+        override fun getAddressExpression32(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression32 {
             TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
         }
 
-        override fun getAddress64(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression64 {
+        override fun getAddressExpression64(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression64 {
             TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
         }
 
-        override fun getAddress128(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression128 {
+        override fun getAddressExpression128(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression128 {
             TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
         }
 
-        override fun getAddress256(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression256 {
+        override fun getAddressExpression256(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression256 {
             TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
         }
 
-        override fun getAddress512(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression512 {
+        override fun getAddressExpression512(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression512 {
             TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
         }
 
         override fun getVectorAddress(index: Int, isRead: Boolean, isWritten: Boolean): VectorAddressExpression {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun getX87Register(index: Int, isRead: Boolean, isWritten: Boolean): X87Register {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun getAddressExpression80(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression80 {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun getAddressExpression28Bytes(index: Int,
+                                                 isRead: Boolean,
+                                                 isWritten: Boolean): AddressExpression28Bytes {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun getAddressExpression108Bytes(index: Int,
+                                                  isRead: Boolean,
+                                                  isWritten: Boolean): AddressExpression108Bytes {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun getAddressExpression512Bytes(index: Int,
+                                                  isRead: Boolean,
+                                                  isWritten: Boolean): AddressExpression512Bytes {
             TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
         }
 
@@ -296,35 +323,61 @@ class Interpreter(val programSet: ProgramSet, val input: ProgramInput, val outpu
             TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
         }
 
-        override fun getAddress8(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression8 {
+        override fun getAddressExpression8(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression8 {
             TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
         }
 
-        override fun getAddress16(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression16 {
+        override fun getAddressExpression16(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression16 {
             TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
         }
 
-        override fun getAddress32(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression32 {
+        override fun getAddressExpression32(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression32 {
             TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
         }
 
-        override fun getAddress64(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression64 {
+        override fun getAddressExpression64(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression64 {
             TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
         }
 
-        override fun getAddress128(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression128 {
+        override fun getAddressExpression128(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression128 {
             TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
         }
 
-        override fun getAddress256(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression256 {
+        override fun getAddressExpression256(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression256 {
             TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
         }
 
-        override fun getAddress512(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression512 {
+        override fun getAddressExpression512(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression512 {
             TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
         }
 
         override fun getVectorAddress(index: Int, isRead: Boolean, isWritten: Boolean): VectorAddressExpression {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun getX87Register(index: Int, isRead: Boolean, isWritten: Boolean): X87Register {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun getAddressExpression80(index: Int, isRead: Boolean, isWritten: Boolean): AddressExpression80 {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun getAddressExpression28Bytes(index: Int,
+                                                 isRead: Boolean,
+                                                 isWritten: Boolean): AddressExpression28Bytes {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun getAddressExpression108Bytes(index: Int,
+                                                  isRead: Boolean,
+                                                  isWritten: Boolean): AddressExpression108Bytes {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun getAddressExpression512Bytes(index: Int,
+                                                  isRead: Boolean,
+                                                  isWritten: Boolean): AddressExpression512Bytes {
             TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
         }
 
@@ -395,6 +448,12 @@ class Interpreter(val programSet: ProgramSet, val input: ProgramInput, val outpu
         return InterpreterInstruction(instructions[opcode + INTERNAL_INSTRUCTION_COUNT].toUShort());
     }
 
+    fun getInstruction(opcode: Instruction): InterpreterInstruction? {
+        val index = options.instructions.indexOf(opcode)
+        if(index == -1) return null;
+        return getInstruction(index)
+    }
+
     private fun emitHaltInstruction() {
         emitInstruction(dispatch = false) {
             haltLinkPoint = assembler.jmp()
@@ -462,7 +521,7 @@ class Interpreter(val programSet: ProgramSet, val input: ProgramInput, val outpu
 //                firstInstructionLinkPoint = Assembler.JumpLinkPoint(buffer, relative = false)
 //            }
 
-            lea(SCRATCH_REGISTER1, AddressExpression64(FIRST_INSTRUCTION_ADDRESS_REGISTER, SCRATCH_REGISTER1, Scale._8))
+            lea(SCRATCH_REGISTER1, AddressExpression64(FIRST_INSTRUCTION_ADDRESS_REGISTER, SCRATCH_REGISTER1, Scale.X8))
             jmp(SCRATCH_REGISTER1)
 //            sal(SCRATCH_REGISTER1, 3);
 //            add(SCRATCH_REGISTER1, FIRST_INSTRUCTION_ADDRESS_REGISTER)
@@ -643,7 +702,7 @@ class Interpreter(val programSet: ProgramSet, val input: ProgramInput, val outpu
         with(assembler) {
             mov(scratchRegister, programCounterRegister)
 //            sal(scratchRegister, 6)
-            mov(AddressExpression64(base = null, index = programCounterRegister, scale = Scale._8, displacement = firstOutputAddress), outputRegister)
+            mov(AddressExpression64(base = null, index = programCounterRegister, scale = Scale.X8, displacement = firstOutputAddress), outputRegister)
         }
     }
 
@@ -683,16 +742,29 @@ class Interpreter(val programSet: ProgramSet, val input: ProgramInput, val outpu
     }
 
     fun run() {
-        println("instruction counter: $instructionCounter")
-        println("running address is ${buffer.address}")
-        println("byte code address is ${programSet.byteBuffer.address}")
-        println("output address is ${output.address}/${output.size}")
-        println("first instruction is ${programSet.byteBuffer.asShortBuffer().get(0)}")
-        println("sec instruction is ${programSet.byteBuffer.asShortBuffer().get(1)}")
-        println("third instruction is ${programSet.byteBuffer.asShortBuffer().get(2)}")
-        println("instruction address ${instructions.contentToString()}")
+//        println("instruction counter: $instructionCounter")
+//        println("running address is ${buffer.address}")
+//        println("byte code address is ${programSet.byteBuffer.address}")
+//        println("output address is ${output.address}/${output.size}")
+//        println("first instruction is ${programSet.byteBuffer.asShortBuffer().get(0)}")
+//        println("sec instruction is ${programSet.byteBuffer.asShortBuffer().get(1)}")
+//        println("third instruction is ${programSet.byteBuffer.asShortBuffer().get(2)}")
+//        println("instruction address ${instructions.contentToString()}")
         buffer.execute()
     }
+
+    data class RunMeasurements(var elapsedSeconds: Double, var instructionsPerSecond: Double)
+
+    fun runAndMeasure() : RunMeasurements {
+        val nanoTime  = measureNanoTime {
+            run()
+        }.toDouble()
+
+        val elapsedSeconds = nanoTime / 1E9
+        val instructionsPerSecond = programSet.instructionCount / elapsedSeconds
+        return RunMeasurements(elapsedSeconds, instructionsPerSecond)
+    }
+
 
 }
 
@@ -715,6 +787,7 @@ class ProgramSet(val size: Int, val programSize: Int) {
         for(i in 0 until size) {
             shortBuffer.put(i * actualProgramSize + programSize, END_INSTRUCTION.index.toShort())
         }
+        println("putting halt at ${instructionCount}")
         shortBuffer.put(instructionCount, HALT_INSTRUCTION.index.toShort())
     }
 
