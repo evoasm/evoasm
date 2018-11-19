@@ -6,6 +6,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.random.Random
 import kotlin.system.measureNanoTime
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 
 internal class InterpreterTest {
 
@@ -55,9 +56,17 @@ internal class InterpreterTest {
            programSet.setInstruction(0, j, interpreter.getInstruction(AddRm64R64)!!)
         }
 
+        run {
+            val output = programSetOutput.getLong(0, 0)
+            assertNotEquals(expectedOutput, output)
+        }
+
         val measurements = interpreter.runAndMeasure()
         println(measurements)
-        val output = programSetOutput.getLong(0, 0)
-        assertEquals(expectedOutput, output)
+
+        run {
+            val output = programSetOutput.getLong(0, 0)
+            assertEquals(expectedOutput, output)
+        }
     }
 }
