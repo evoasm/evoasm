@@ -650,11 +650,7 @@ class Interpreter(val programSet: ProgramSet,
             emitEndInstruction()
 
             emitInstructions()
-//            emitAddInstructions()
-//            emitSubInstructions()
-//            emitMulInstructions()
-//            emitMoveInstructions()
-//            emitGpZeroAllInstruction()
+            emitMoveInstructions()
             emitInterpreterEpilog()
         }
 
@@ -731,51 +727,97 @@ class Interpreter(val programSet: ProgramSet,
         }
     }
 
+    private inline fun <reified T: Register> emitMoveInstruction(destinationRegister: T, sourceRegister: T) {
+        when(T::class) {
+            GpRegister64::class -> {
+                assembler.mov(destinationRegister as GpRegister64, sourceRegister as GpRegister64)
+            }
+
+            XmmRegister::class -> {
+                when(input) {
+                    is DoubleProgramInput -> {
+                        assembler.movsd(destinationRegister as XmmRegister, sourceRegister as XmmRegister)
+                    }
+                    else -> {
+                        throw IllegalStateException("unknown input class")
+                    }
+                }
+            }
+
+            YmmRegister::class -> {
+                when(input) {
+                    is DoubleProgramInput -> {
+                        assembler.vmovsd((destinationRegister as YmmRegister).subRegisterXmm, (sourceRegister as YmmRegister).subRegisterXmm)
+                    }
+                    else -> {
+                        throw IllegalStateException("unknown input class")
+                    }
+                }
+            }
+
+
+            else -> {
+                throw RuntimeException()
+            }
+        }
+    }
+
     private fun emitMoveInstructions() {
-        emitGpInstructions { destinationRegister, sourceRegister ->
-            assembler.mov(destinationRegister, sourceRegister)
+
+        when(input) {
+            is LongProgramSetOutput -> {
+
+            }
+        }
+
+        GP_REGISTERS.take(3).forEach { ioRegister ->
+            GP_REGISTERS.drop(3).forEach { otherRegister ->
+                emitInstruction {
+                }
+
+                emitInstruction {
+                    assembler.mov(otherRegister, ioRegister)
+                }
+            }
+        }
+
+
+
+        //FIXME: using the pd variant of the mov might cause a domain switch latency
+        // i.e. if the register holds integer data (or possibly a single double?) and we use a pd mov
+        // https://stackoverflow.com/questions/6678073/difference-between-movdqa-and-movaps-x86-instructions
+
+        if(YMM_REGISTERS.first().isSupported()) {
+            YMM_REGISTERS.take(3).forEach { ioRegister ->
+                YMM_REGISTERS.drop(3).forEach { otherRegister ->
+
+                    emitInstruction {
+                       assembler.vmovapd(ioRegister, otherRegister)
+                    }
+
+                    emitInstruction {
+                        assembler.vmovapd(otherRegister, ioRegister)
+                    }
+                }
+            }
+        } else {
+            XMM_REGISTERS.take(3).forEach { ioRegister ->
+                XMM_REGISTERS.drop(3).forEach { otherRegister ->
+
+                    emitInstruction {
+                        assembler.movapd(ioRegister, otherRegister)
+                    }
+
+                    emitInstruction {
+                        assembler.movapd(otherRegister, ioRegister)
+                    }
+                }
+            }
         }
     }
-
-    private fun emitAddInstructions() {
-        emitGpInstructions { destinationRegister, sourceRegister ->
-            assembler.add(destinationRegister, sourceRegister)
-        }
-    }
-
-    private fun emitSubInstructions() {
-        emitGpInstructions { destinationRegister, sourceRegister ->
-            assembler.sub(destinationRegister, sourceRegister)
-        }
-    }
-
-    private fun emitMulInstructions() {
-        emitGpInstructions { destinationRegister, sourceRegister ->
-            assembler.imul(destinationRegister, sourceRegister)
-        }
-    }
-
 
     private fun emitOutputStore() {
-
         output.emitStore(assembler)
-//        with(assembler) {
-//            when(output) {
-//
-//
-//                is LongProgramSetOutput -> {
-//                    val outputRegister = GP_REGISTERS.first()
-//                    mov(AddressExpression64(base = null, index = COUNTER_REGISTER, scale = Scale.X8, displacement = firstOutputAddress), outputRegister)
-//                }
-//                is Vector256ProgramSetOutput -> {
-//                    val outputRegister = XMM_REGISTERS.first()
-//                    mov(SCRATCH_REGISTER1, COUNTER_REGISTER)
-//                    // * 256
-//                    sal(SCRATCH_REGISTER1, 8)
-//                    vmovapd(AddressExpression256(base = SCRATCH_REGISTER1, displacement = firstOutputAddress), outputRegister)
-//                }
-//            }
-//        }
     }
 
     private fun emitInstruction(dispatch: Boolean = true, block: () -> Unit) {
@@ -798,19 +840,6 @@ class Interpreter(val programSet: ProgramSet,
             instructions = newInstructions
         }
         instructions[instructionCounter++] = index
-    }
-
-    private fun emitGpInstructions(block: (GpRegister64, GpRegister64) -> Unit) {
-        with(assembler) {
-            GP_REGISTERS.forEachIndexed { index, destinationRegister ->
-                for (i in index + 1..index + 3) {
-                    val sourceRegister = GP_REGISTERS[i % GP_REGISTERS.size]
-                    emitInstruction {
-                        block(destinationRegister, sourceRegister)
-                    }
-                }
-            }
-        }
     }
 
     fun run() {

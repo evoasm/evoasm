@@ -2,6 +2,7 @@ package evoasm.x64
 
 import kasm.x64.AddRm64R64
 import kasm.x64.AddsdXmm0To63Xmmm64
+import kasm.x64.SubsdXmm0To63Xmmm64
 import org.junit.jupiter.api.Test
 import java.util.concurrent.TimeUnit
 import kotlin.random.Random
@@ -79,16 +80,26 @@ internal class InterpreterTest {
         programInput.set(0, 0.0)
         programInput.set(1, 1.0)
         val options = InterpreterOptions.DEFAULT
-        val programSet = ProgramSet(1, programSize)
+        val programSet = ProgramSet(2, programSize)
         val programSetOutput = DoubleProgramSetOutput(programSet)
         val interpreter = Interpreter(programSet, programInput, programSetOutput, options = options)
+
         for (j in 0 until programSet.programSize) {
             programSet.setInstruction(0, j, interpreter.getInstruction(AddsdXmm0To63Xmmm64)!!)
+        }
+
+        for (j in 0 until programSet.programSize) {
+            programSet.setInstruction(1, j, interpreter.getInstruction(SubsdXmm0To63Xmmm64)!!)
         }
 
         run {
             val output = programSetOutput.getDouble(0)
             assertNotEquals(expectedOutput, output)
+        }
+
+        run {
+            val output = programSetOutput.getDouble(1)
+            assertNotEquals(expectedOutput, -output)
         }
 
         val measurements = interpreter.runAndMeasure()
@@ -97,6 +108,11 @@ internal class InterpreterTest {
         run {
             val output = programSetOutput.getDouble(0)
             assertEquals(expectedOutput, output)
+        }
+
+        run {
+            val output = programSetOutput.getDouble(1)
+            assertEquals(expectedOutput, -output)
         }
     }
 }
