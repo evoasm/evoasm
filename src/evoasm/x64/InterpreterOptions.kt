@@ -1,11 +1,15 @@
 package evoasm.x64
 
 import kasm.x64.Instruction
+import kasm.x64.MovR64Rm64
+import kasm.x64.MoveInstruction
+import kasm.x64.MovsdXmmm64Xmm
 
 class InterpreterOptions(instructions: List<Instruction>,
                          val allowUnsupportedInstructions: Boolean = false,
                          val safeDivision: Boolean = true,
-                         val divisionByZeroResult: Long = 0) {
+                         val moveInstructions: List<MoveInstruction>) {
+
     companion object {
         private fun supportedInstruction(i0: Instruction,
                                          i1: Instruction,
@@ -21,8 +25,11 @@ class InterpreterOptions(instructions: List<Instruction>,
             }
         }
 
+        val defaultMoveInstructions: List<MoveInstruction> get() {
+            return listOf(MovR64Rm64, MovsdXmmm64Xmm)
+        }
 
-        val DEFAULT = InterpreterOptions(instructions = defaultInstructions)
+        val DEFAULT = InterpreterOptions(instructions = defaultInstructions, moveInstructions = defaultMoveInstructions)
     }
 
     val instructions: List<Instruction>

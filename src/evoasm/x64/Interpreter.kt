@@ -1,10 +1,11 @@
 package evoasm.x64
 
 import kasm.*
+import kasm.ext.log2
 import kasm.ext.toEnumSet
 import kasm.x64.*
 import kasm.x64.GpRegister64.*
-import java.lang.IllegalArgumentException
+import kotlin.IllegalArgumentException
 import kotlin.random.Random
 import kotlin.system.measureNanoTime
 
@@ -12,20 +13,61 @@ inline class InterpreterInstruction(val index: UShort) {
 
 }
 
-abstract class ProgramInput(val arity: Int) {
+abstract class ProgramInput(val size: Int, val arity: Int) {
+    init {
+        require(size > 0)
+        require(size <= Short.MAX_VALUE)
+        require(arity > 0)
+    }
     abstract fun emitLoad(assembler: Assembler)
+
+    protected fun <R: Register> emitLoad(assembler: Assembler, address: Address, registers: List<R>, elementSize: Int, block: (R, AddressExpression64) -> Unit) {
+        with(assembler) {
+            mov(Interpreter.SCRATCH_REGISTER1, address.toLong())
+
+            if(size != 1) {
+                movzx(Interpreter.SCRATCH_REGISTER2, Interpreter.COUNTERS_REGISTER.subRegister16)
+                val multiplier = size * elementSize
+
+                Interpreter.emitMultiplication(assembler, Interpreter.SCRATCH_REGISTER2, multiplier)
+                add(Interpreter.SCRATCH_REGISTER1, Interpreter.SCRATCH_REGISTER2)
+
+//                when {
+//                    multiplier % 2 == 0 -> {
+//                        val shiftSize = (31 - Integer.numberOfLeadingZeros(bufferSize)).toByte()
+//                        sal(Interpreter.SCRATCH_REGISTER2, shiftSize)
+//                    }
+//                    multiplier <= Byte.MAX_VALUE -> {
+//                        imul(Interpreter.SCRATCH_REGISTER2, Interpreter.SCRATCH_REGISTER2, multiplier.toByte())
+//                    }
+//                    else -> {
+//                        imul(Interpreter.SCRATCH_REGISTER2, Interpreter.SCRATCH_REGISTER2, multiplier)
+//                    }
+//                }
+            }
+
+            registers.forEachIndexed { index, register ->
+                block(register,AddressExpression64(base = Interpreter.SCRATCH_REGISTER1) )
+                if(index > 0 && index % arity == 0) {
+                    sub(Interpreter.SCRATCH_REGISTER1, arity * elementSize)
+                } else {
+                    lea(Interpreter.SCRATCH_REGISTER1, AddressExpression64(Interpreter.SCRATCH_REGISTER1, elementSize))
+                }
+            }
+        }
+    }
 }
 
-class LongProgramInput(arity: Int) : ProgramInput(arity) {
+class LongProgramInput(size: Int, arity: Int) : ProgramInput(size, arity) {
     private val storage: Storage
 
-    private class Storage(arity: Int) : Structure() {
-        val field = longField(arity)
+    private class Storage(size: Int, arity: Int) : Structure() {
+        val field = longField(size, arity)
     }
 
     init {
         require(arity < Interpreter.GP_REGISTERS.size)
-        storage = Storage(arity)
+        storage = Storage(size, arity)
         storage.allocate()
     }
 
@@ -34,108 +76,152 @@ class LongProgramInput(arity: Int) : ProgramInput(arity) {
     }
 
     override fun emitLoad(assembler: Assembler) {
-        Interpreter.GP_REGISTERS.forEachIndexed { index, register ->
-            with(assembler) {
-                mov(Interpreter.SCRATCH_REGISTER1, storage.field.getAddress(index % arity).toLong())
-                mov(register, AddressExpression64(base = Interpreter.SCRATCH_REGISTER1))
-            }
+        emitLoad(assembler, storage.field.address, Interpreter.GP_REGISTERS, Long.SIZE_BYTES) { register, addressExpression ->
+            assembler.mov(register, addressExpression)
         }
     }
 }
 
-class DoubleProgramInput(arity: Int) : ProgramInput(arity) {
+class DoubleProgramInput(size: Int, arity: Int) : ProgramInput(size, arity) {
     private val storage: Storage
 
-    private class Storage(arity: Int) : Structure() {
-        val field = doubleField(arity)
+    private class Storage(size: Int, arity: Int) : Structure() {
+        val field = doubleField(size, arity)
     }
 
     init {
         require(arity < Interpreter.XMM_REGISTERS.size)
-        storage = Storage(arity)
+        storage = Storage(size, arity)
         storage.allocate()
     }
 
-    fun set(index: Int, value: Double) {
-        storage.field.set(index, value)
+    fun set(index0: Int, index1: Int, value: Double) {
+        storage.field.set(index0, index1, value)
     }
 
     override fun emitLoad(assembler: Assembler) {
-        Interpreter.XMM_REGISTERS.forEachIndexed { index, register ->
-            with(assembler) {
-                mov(Interpreter.SCRATCH_REGISTER1, storage.field.getAddress(index % arity).toLong())
-                movsd(register, AddressExpression64(base = Interpreter.SCRATCH_REGISTER1))
+        emitLoad(assembler, storage.field.address, Interpreter.XMM_REGISTERS, Long.SIZE_BYTES) { register, addressExpression ->
+            assembler.movDouble(register, addressExpression)
+        }
+
+//        Interpreter.XMM_REGISTERS.forEachIndexed { index, register ->
+//            with(assembler) {
+//                mov(Interpreter.SCRATCH_REGISTER1, storage.field.getAddress(index % arity).toLong())
+//                movsd(register, AddressExpression64(base = Interpreter.SCRATCH_REGISTER1))
+//            }
+//        }
+    }
+}
+
+abstract class ProgramSetOutput(programSet: ProgramSet, programInput: ProgramInput) {
+    protected abstract val structure: Structure
+    internal val buffer get() = structure.buffer
+    val size = programInput.size
+
+    internal abstract fun emitStore(assembler: Assembler)
+
+    protected fun emitStore(assembler: Assembler, address: Address, elementSize: Int, block: (AddressExpression64) -> Unit) {
+        require(elementSize % 2 == 0)
+
+        with(assembler) {
+            mov(Interpreter.SCRATCH_REGISTER1, Interpreter.COUNTERS_REGISTER)
+
+            if(size != 1) {
+                shr(Interpreter.SCRATCH_REGISTER1, 16)
+                Interpreter.emitMultiplication(assembler, Interpreter.SCRATCH_REGISTER1, size * elementSize)
+                movzx(Interpreter.SCRATCH_REGISTER2, Interpreter.COUNTERS_REGISTER.subRegister16)
+                sal(Interpreter.SCRATCH_REGISTER2, log2(elementSize).toByte())
+                add(Interpreter.SCRATCH_REGISTER1, Interpreter.SCRATCH_REGISTER2)
+                mov(Interpreter.SCRATCH_REGISTER2, address)
+                add(Interpreter.SCRATCH_REGISTER1, Interpreter.SCRATCH_REGISTER2)
+                block(AddressExpression64(Interpreter.SCRATCH_REGISTER1))
+            } else {
+                // TODO: if elementSize == 1, can use scale, if address is 32-bit can use displacement
+                sal(Interpreter.SCRATCH_REGISTER1, log2(elementSize).toByte())
+                mov(Interpreter.SCRATCH_REGISTER2, address)
+                add(Interpreter.SCRATCH_REGISTER1, Interpreter.SCRATCH_REGISTER2)
+                block(AddressExpression64(base = Interpreter.SCRATCH_REGISTER1))
             }
         }
     }
 }
 
-abstract class ProgramSetOutput(programSet: ProgramSet) {
-    protected abstract val structure: Structure
-    val address get() = structure.address.toInt()
-    val size get() = structure.buffer.capacity()
-
-    internal abstract fun emitStore(assembler: Assembler)
+abstract class ValueProgramSetOutput<T>(programSet: ProgramSet, programInput: ProgramInput) : ProgramSetOutput(programSet, programInput) {
+    abstract fun get(programIndex: Int, outputIndex: Int): T
 }
 
-abstract class ValueProgramSetOutput<T>(programSet: ProgramSet) : ProgramSetOutput(programSet) {
-    abstract fun get(programIndex: Int): T
-}
-
-class LongProgramSetOutput(programSet: ProgramSet) : ValueProgramSetOutput<Long>(programSet) {
+class LongProgramSetOutput(programSet: ProgramSet, programInput: ProgramInput) : ValueProgramSetOutput<Long>(programSet, programInput) {
     override val structure: Structure get() = storage
     private val storage: Storage
 
-    private class Storage(programCount: Int) : Structure(CodeModel.SMALL) {
-        val field = longField(programCount)
+    private class Storage(programCount: Int, inputSize: Int) : Structure() {
+        val field = longField(programCount, inputSize)
     }
 
     init {
-        storage = Storage(programSet.size)
+        storage = Storage(programSet.size, programInput.size)
         storage.allocate()
     }
 
-    fun getLong(programIndex: Int): Long {
-        return storage.field.get(programIndex)
+    fun getLong(programIndex: Int, outputIndex: Int): Long {
+        return storage.field.get(programIndex, outputIndex)
     }
 
-    override fun get(programIndex: Int): Long {
-        return getLong(programIndex)
+    override fun get(programIndex: Int, outputIndex: Int): Long {
+        return getLong(programIndex, outputIndex)
     }
 
     override fun emitStore(assembler: Assembler) {
-        val outputRegister = Interpreter.GP_REGISTERS.first()
-        assembler.mov(AddressExpression64(base = null, index = Interpreter.COUNTER_REGISTER, scale = Scale.X8, displacement = address), outputRegister)
+
+        emitStore(assembler, storage.field.address, 8) {
+            val outputRegister = Interpreter.GP_REGISTERS.first()
+            assembler.mov(it, outputRegister)
+        }
+
+//        assembler.mov(AddressExpression64(base = null,
+//                                          index = Interpreter.SCRATCH_REGISTER1,
+//                                          scale = Scale.X8,
+//                                          displacement = address), outputRegister)
     }
 }
 
-class DoubleProgramSetOutput(programSet: ProgramSet) : ValueProgramSetOutput<Double>(programSet) {
+class DoubleProgramSetOutput(programSet: ProgramSet, programInput: ProgramInput) : ValueProgramSetOutput<Double>(programSet, programInput) {
     override val structure: Structure get() = storage
     private val storage: Storage
 
-    private class Storage(programCount: Int) : Structure(CodeModel.SMALL) {
-        val field = doubleField(programCount, alignment = 16)
+    private class Storage(programCount: Int, inputSize: Int) : Structure() {
+        val field = doubleField(programCount, inputSize, alignment = 16)
     }
 
     init {
-        storage = Storage(programSet.size)
+        storage = Storage(programSet.size, programInput.size)
         storage.allocate()
     }
 
-    fun getDouble(programIndex: Int): Double {
-        return storage.field.get(programIndex)
+    fun getDouble(programIndex: Int, outputIndex: Int): Double {
+        return storage.field.get(programIndex, outputIndex)
     }
 
-    override fun get(programIndex: Int): Double {
-        return getDouble(programIndex)
+    override fun get(programIndex: Int, outputIndex: Int): Double {
+        return getDouble(programIndex, outputIndex)
     }
 
     override fun emitStore(assembler: Assembler) {
-        val outputRegister = Interpreter.XMM_REGISTERS.first()
-        assembler.movsd(AddressExpression64(base = null, index = Interpreter.COUNTER_REGISTER, scale = Scale.X8, displacement = address), outputRegister)
+
+        emitStore(assembler, storage.field.address, 8) {
+            val outputRegister = Interpreter.XMM_REGISTERS.first()
+            assembler.movDouble(it, outputRegister)
+        }
+
+//        val outputRegister = Interpreter.XMM_REGISTERS.first()
+//        assembler.mov(Interpreter.SCRATCH_REGISTER1, Interpreter.COUNTERS_REGISTER)
+//        assembler.sar(Interpreter.SCRATCH_REGISTER1, 16)
+//        assembler.movsd(AddressExpression64(base = null,
+//                                            index = Interpreter.SCRATCH_REGISTER1,
+//                                            scale = Scale.X8,
+//                                            displacement = address), outputRegister)
     }
 }
-
 
 
 class Interpreter(val programSet: ProgramSet,
@@ -144,17 +230,32 @@ class Interpreter(val programSet: ProgramSet,
                   val options: InterpreterOptions = InterpreterOptions.DEFAULT) {
 
     companion object {
+        fun emitMultiplication(assembler: Assembler, register: GpRegister64, multiplier: Int) {
+            when {
+                multiplier % 2 == 0 -> {
+                    val shiftSize = log2(multiplier).toByte()
+                    assembler.sal(register, shiftSize)
+                }
+                multiplier <= Byte.MAX_VALUE -> {
+                    assembler.imul(register, register, multiplier.toByte())
+                }
+                else -> {
+                    assembler.imul(register, register, multiplier)
+                }
+            }
+        }
+
         private const val INSTRUCTION_ALIGNMENT = 8 // bytes
         private const val OPCODE_SIZE = Short.SIZE_BYTES // bytes
 
         private const val INTERNAL_INSTRUCTION_COUNT = 2
 
-        private val FIRST_INSTRUCTION_ADDRESS_REGISTER = R15
+        private val FIRST_INSTRUCTION_ADDRESS_REGISTER = RBP
         private val IP_REGISTER = R14
         internal val SCRATCH_REGISTER1 = R13
-        internal val COUNTER_REGISTER = R12
-        private val SCRATCH_REGISTER2 = R11
-        internal val GP_REGISTERS = listOf(RAX, RBX, RCX, RDX, RDI, RSI, R8, R9, R10)
+        internal val COUNTERS_REGISTER = R12
+        internal val SCRATCH_REGISTER2 = R15
+        internal val GP_REGISTERS = listOf(RAX, RBX, RCX, RDX, RDI, RSI, R8, R9, R10, R11)
         internal val XMM_REGISTERS = XmmRegister.values().filter { it.isSupported() }.toList()
         private val YMM_REGISTERS = YmmRegister.values().filter { it.isSupported() }.toList()
         private val MM_REGISTERS = MmRegister.values().toList()
@@ -473,7 +574,7 @@ class Interpreter(val programSet: ProgramSet,
 
     private var haltLinkPoint: Assembler.JumpLinkPoint? = null
     private var firstInstructionLinkPoint: Assembler.LongLinkPoint? = null
-    private val buffer = NativeBuffer(1024 * 30, CodeModel.LARGE)
+    private val buffer = NativeBuffer(1024 * 35, CodeModel.LARGE)
     private val assembler = Assembler(buffer)
 
     private var instructionCounter: Int = 0
@@ -483,43 +584,45 @@ class Interpreter(val programSet: ProgramSet,
     private val usedRegisters = mutableSetOf<Register>()
 
     private var firstInstructionOffset: Int = -1
-    private val firstOutputAddress: Int
 
 //    private val instructionParameters = InterpreterInstructionParameters(this)
 //    private val instructionTracer = InterpreterInstructionTracer(this)
 
 
     init {
-        firstOutputAddress = output.address
-
         emit()
 
         println(instructions.contentToString())
-        check(getEndInstruction() == ProgramSet.END_INSTRUCTION,
-              { "invalid end instruction (${ProgramSet.END_INSTRUCTION} should be ${getEndInstruction()})" })
-        check(getHaltInstruction() == ProgramSet.HALT_INSTRUCTION,
-              { "invalid halt instruction (${ProgramSet.HALT_INSTRUCTION} should be ${getHaltInstruction()})" })
+        check(getEndInterpreterInstruction() == ProgramSet.END_INSTRUCTION,
+              { "invalid end instruction (${ProgramSet.END_INSTRUCTION} should be ${getEndInterpreterInstruction()})" })
+        check(getHaltInterpreterInstruction() == ProgramSet.HALT_INSTRUCTION,
+              { "invalid halt instruction (${ProgramSet.HALT_INSTRUCTION} should be ${getHaltInterpreterInstruction()})" })
 //        programSet._init(this)
         println(buffer.toByteString())
     }
 
-    internal fun getHaltInstruction(): InterpreterInstruction {
+    internal fun getHaltInterpreterInstruction(): InterpreterInstruction {
         return InterpreterInstruction(instructions[0].toUShort());
     }
 
-    internal fun getEndInstruction(): InterpreterInstruction {
+    internal fun getEndInterpreterInstruction(): InterpreterInstruction {
         return InterpreterInstruction(instructions[1].toUShort());
     }
 
-    fun getInstruction(opcode: Int): InterpreterInstruction {
+    fun getInterpreterInstruction(opcode: Int): InterpreterInstruction {
         require(opcode < instructionCounter, { "invalid opcode $opcode (max opcode is $instructionCounter)" })
         return InterpreterInstruction(instructions[opcode + INTERNAL_INSTRUCTION_COUNT].toUShort());
     }
 
-    fun getInstruction(opcode: Instruction): InterpreterInstruction? {
-        val index = options.instructions.indexOf(opcode)
+    fun getInterpreterInstruction(instruction: Instruction): InterpreterInstruction? {
+        val index = options.instructions.indexOf(instruction)
         if (index == -1) return null;
-        return getInstruction(index)
+        return getInterpreterInstruction(index)
+    }
+
+    fun getInstruction(interpreterInstruction: InterpreterInstruction): Instruction {
+        val index = instructions.indexOf(interpreterInstruction.index.toUShort())
+        return options.instructions[index - INTERNAL_INSTRUCTION_COUNT]
     }
 
     private fun emitHaltInstruction() {
@@ -549,12 +652,15 @@ class Interpreter(val programSet: ProgramSet,
         }
     }
 
+    private var programStartLabel: Assembler.Label? = null
+
     private fun emitEndInstruction() {
         with(assembler) {
             emitInstruction {
 
+
                 // extract program counter
-//                mov(SCRATCH_REGISTER1, COUNTER_REGISTER)
+//                mov(SCRATCH_REGISTER1, COUNTERS_REGISTER)
 
                 //FIXME: if we have instruction counter
                 // { shr(SCRATCH_REGISTER1, 16) }
@@ -564,15 +670,28 @@ class Interpreter(val programSet: ProgramSet,
                 // load inputs
                 input.emitLoad(assembler)
 
-                // increment program counter
+                if(input.size != 1) {
+                    val inputCounterSubRegister = COUNTERS_REGISTER.subRegister16
+                    // decrease input count
+                    dec(inputCounterSubRegister)
+                    ifNotEqual(
+                            {
+                                //mov(IP_REGISTER, programSet.address.toLong())
+                                sub(IP_REGISTER, OPCODE_SIZE * (programSet.programSize + 1))
+                            },
+                            {
+                                // increment program counter
+                                add(COUNTERS_REGISTER, 1 shl 16)
+                                //inc(COUNTERS_REGISTER)
 
-                //FIXME: if we have instruction counter
-                //add(COUNTER_REGISTER, 1 shl 16)
-                inc(COUNTER_REGISTER)
+                                // reset input counter
+                                mov(inputCounterSubRegister, input.size.toShort())
+                            }
+                              )
+                } else {
+                    inc(COUNTERS_REGISTER)
+                }
 
-                // reset instruction counter
-                //FIXME: only if we keep instruction count
-                //mov(COUNTER_REGISTER.subRegister16, 0)
             }
         }
     }
@@ -607,9 +726,9 @@ class Interpreter(val programSet: ProgramSet,
     private fun emitInstructionEpilog(dispatch: Boolean) {
         with(assembler) {
             // increment per program instruction counter
-            // inc(COUNTER_REGISTER)
+            // inc(COUNTERS_REGISTER)
             // extract lower counter
-            // movzx(SCRATCH_REGISTER1, COUNTER_REGISTER.subRegister16)
+            // movzx(SCRATCH_REGISTER1, COUNTERS_REGISTER.subRegister16)
 
             if (dispatch) emitDispatch()
             align(INSTRUCTION_ALIGNMENT)
@@ -624,7 +743,11 @@ class Interpreter(val programSet: ProgramSet,
             emitRflagsReset()
             mov(IP_REGISTER, programSet.address.toLong())
             firstInstructionLinkPoint = mov(FIRST_INSTRUCTION_ADDRESS_REGISTER)
-            mov(COUNTER_REGISTER, 0)
+            if(input.size == 1) {
+                xor(COUNTERS_REGISTER, COUNTERS_REGISTER)
+            } else {
+                mov(COUNTERS_REGISTER, input.size)
+            }
             input.emitLoad(assembler)
 
 //            mov(FIRST_INSTRUCTION_ADDRESS_REGISTER, instructionIndices.address.toInt())
@@ -654,7 +777,7 @@ class Interpreter(val programSet: ProgramSet,
             emitInterpreterEpilog()
         }
 
-        println("Average instruction size: ${assembler.buffer.position() / options.instructions.size.toDouble()}")
+        println("Average instruction bufferSize: ${assembler.buffer.position() / options.instructions.size.toDouble()}")
     }
 
 
@@ -704,7 +827,7 @@ class Interpreter(val programSet: ProgramSet,
         val linkPoint = assembler.je()
 
         when (instruction) {
-            is R8m8Instruction  -> {
+            is R8m8Instruction   -> {
                 instruction.encode(assembler.buffer, divisorRegister.subRegister8)
             }
             is R16m16Instruction -> {
@@ -720,96 +843,55 @@ class Interpreter(val programSet: ProgramSet,
         assembler.link(linkPoint)
     }
 
-
-    private fun emitGpZeroAllInstruction() {
-        GP_REGISTERS.forEach {
-            assembler.mov(it, 0)
-        }
-    }
-
-    private inline fun <reified T: Register> emitMoveInstruction(destinationRegister: T, sourceRegister: T) {
-        when(T::class) {
-            GpRegister64::class -> {
-                assembler.mov(destinationRegister as GpRegister64, sourceRegister as GpRegister64)
-            }
-
-            XmmRegister::class -> {
-                when(input) {
-                    is DoubleProgramInput -> {
-                        assembler.movsd(destinationRegister as XmmRegister, sourceRegister as XmmRegister)
-                    }
-                    else -> {
-                        throw IllegalStateException("unknown input class")
-                    }
-                }
-            }
-
-            YmmRegister::class -> {
-                when(input) {
-                    is DoubleProgramInput -> {
-                        assembler.vmovsd((destinationRegister as YmmRegister).subRegisterXmm, (sourceRegister as YmmRegister).subRegisterXmm)
-                    }
-                    else -> {
-                        throw IllegalStateException("unknown input class")
-                    }
-                }
-            }
-
-
-            else -> {
-                throw RuntimeException()
-            }
-        }
-    }
-
     private fun emitMoveInstructions() {
+        options.moveInstructions.forEach {
+            emitMoveInstructions(it)
+        }
+    }
 
-        when(input) {
-            is LongProgramSetOutput -> {
+    private fun emitMoveInstructions(instruction: MoveInstruction) {
 
-            }
+        val buffer = assembler.buffer
+        val registers: List<Register> = when (instruction) {
+            is R64m64R64Instruction, is R64R64m64Instruction                           -> GP_REGISTERS
+            is XmmXmmm64Instruction, is XmmXmmm128Instruction, is Xmmm64XmmInstruction -> XMM_REGISTERS
+            is YmmYmmm256Instruction                                                   -> YMM_REGISTERS
+            else                                                                       -> throw IllegalArgumentException(
+                    "invalid move instruction $instruction")
         }
 
-        GP_REGISTERS.take(3).forEach { ioRegister ->
-            GP_REGISTERS.drop(3).forEach { otherRegister ->
-                emitInstruction {
-                }
-
-                emitInstruction {
-                    assembler.mov(otherRegister, ioRegister)
-                }
-            }
-        }
-
-
-
-        //FIXME: using the pd variant of the mov might cause a domain switch latency
+        //NOTE: using the pd variant of the mov might cause a domain switch latency
         // i.e. if the register holds integer data (or possibly a single double?) and we use a pd mov
         // https://stackoverflow.com/questions/6678073/difference-between-movdqa-and-movaps-x86-instructions
 
-        if(YMM_REGISTERS.first().isSupported()) {
-            YMM_REGISTERS.take(3).forEach { ioRegister ->
-                YMM_REGISTERS.drop(3).forEach { otherRegister ->
-
-                    emitInstruction {
-                       assembler.vmovapd(ioRegister, otherRegister)
-                    }
-
-                    emitInstruction {
-                        assembler.vmovapd(otherRegister, ioRegister)
-                    }
-                }
-            }
-        } else {
-            XMM_REGISTERS.take(3).forEach { ioRegister ->
-                XMM_REGISTERS.drop(3).forEach { otherRegister ->
-
-                    emitInstruction {
-                        assembler.movapd(ioRegister, otherRegister)
-                    }
-
-                    emitInstruction {
-                        assembler.movapd(otherRegister, ioRegister)
+        registers.take(3).forEach { destinationRegister ->
+            registers.drop(3).forEach { sourceRegister ->
+                emitInstruction {
+                    when (instruction) {
+                        is R64m64R64Instruction  -> instruction.encode(buffer,
+                                                                       destinationRegister as GpRegister64,
+                                                                       sourceRegister as GpRegister64)
+                        is R64R64m64Instruction  -> instruction.encode(buffer,
+                                                                       destinationRegister as GpRegister64,
+                                                                       sourceRegister as GpRegister64)
+                        is XmmXmmm64Instruction  -> instruction.encode(buffer,
+                                                                       destinationRegister as XmmRegister,
+                                                                       sourceRegister as XmmRegister)
+                        is Xmmm64XmmInstruction  -> instruction.encode(buffer,
+                                                                       destinationRegister as XmmRegister,
+                                                                       sourceRegister as XmmRegister)
+                        is XmmXmmm128Instruction -> instruction.encode(buffer,
+                                                                       destinationRegister as XmmRegister,
+                                                                       sourceRegister as XmmRegister)
+                        is Xmmm128XmmInstruction -> instruction.encode(buffer,
+                                                                       destinationRegister as XmmRegister,
+                                                                       sourceRegister as XmmRegister)
+                        is YmmYmmm256Instruction -> instruction.encode(buffer,
+                                                                       destinationRegister as YmmRegister,
+                                                                       sourceRegister as YmmRegister)
+                        is YmmYmmm256Instruction -> instruction.encode(buffer,
+                                                                       destinationRegister as YmmRegister,
+                                                                       sourceRegister as YmmRegister)
                     }
                 }
             }
@@ -844,9 +926,9 @@ class Interpreter(val programSet: ProgramSet,
 
     fun run() {
 //        println("instruction counter: $instructionCounter")
-//        println("running address is ${buffer.address}")
-//        println("byte code address is ${programSet.byteBuffer.address}")
-//        println("output address is ${output.address}/${output.size}")
+        println("running address is ${buffer.address}")
+        println("byte code address is ${programSet.byteBuffer.address}")
+        println("output address is ${output.buffer.address}/${output.buffer.capacity()}")
 //        println("first instruction is ${programSet.byteBuffer.asShortBuffer().get(0)}")
 //        println("sec instruction is ${programSet.byteBuffer.asShortBuffer().get(1)}")
 //        println("third instruction is ${programSet.byteBuffer.asShortBuffer().get(2)}")
@@ -892,27 +974,27 @@ class ProgramSet(val size: Int, val programSize: Int) {
         shortBuffer.put(instructionCount, HALT_INSTRUCTION.index.toShort())
     }
 
-    fun setInstruction(programIndex: Int, instructionIndex: Int, instruction: InterpreterInstruction) {
+    fun set(programIndex: Int, instructionIndex: Int, instruction: InterpreterInstruction) {
         val offset = (programIndex * actualProgramSize + Math.min(programSize - 1, instructionIndex)) * Short.SIZE_BYTES
         byteBuffer.putShort(offset, instruction.index.toShort())
     }
 
-    fun getInstruction(programIndex: Int, instructionIndex: Int): InterpreterInstruction {
+    fun get(programIndex: Int, instructionIndex: Int): InterpreterInstruction {
         val offset = (programIndex * actualProgramSize + Math.min(programSize - 1, instructionIndex)) * Short.SIZE_BYTES
         return InterpreterInstruction(byteBuffer.getShort(offset).toUShort())
     }
 }
 
 fun main() {
-    val programInput = LongProgramInput(1)
-    programInput.set(0, 0x1L)
-    val programSet = ProgramSet(1, 1)
-    val programSetOutput = LongProgramSetOutput(programSet)
-    val interpreter = Interpreter(programSet, programInput, programSetOutput)
-    for (i in 0 until programSet.programSize) {
-        programSet.setInstruction(0, i, interpreter.getInstruction(0).also { println("setting instr ${it}") })
-    }
-    interpreter.run()
-    println(programSetOutput.getLong(0))
+//    val programInput = LongProgramInput(1, )
+//    programInput.set(0, 0x1L)
+//    val programSet = ProgramSet(1, 1)
+//    val programSetOutput = LongProgramSetOutput(programSet)
+//    val interpreter = Interpreter(programSet, programInput, programSetOutput)
+//    for (i in 0 until programSet.programSize) {
+//        programSet.set(0, i, interpreter.getInterpreterInstruction(0).also { println("setting instr ${it}") })
+//    }
+//    interpreter.run()
+//    println(programSetOutput.getLong(0))
 
 }
