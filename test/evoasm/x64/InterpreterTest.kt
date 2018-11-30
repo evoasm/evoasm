@@ -71,15 +71,15 @@ internal class InterpreterTest {
 
     @Test
     fun addDouble() {
-        val programSize = 10_000
+        val programSize = 100_000
+        val factor = 4.0;
         val expectedOutput = programSize.toDouble()
         val programInput = DoubleProgramInput(2, 2)
 
-        programInput.set(0, 0, 0.0)
-        programInput.set(0, 1, 1.0)
-
-        programInput.set(1, 0, 0.0)
-        programInput.set(1, 1, -1.0)
+        programInput[0, 0] = 0.0
+        programInput[0, 1] = 1.0
+        programInput[1, 0] = 0.0
+        programInput[1, 1] = factor
 
 
         val options = InterpreterOptions.DEFAULT
@@ -107,21 +107,18 @@ internal class InterpreterTest {
             assertNotEquals(expectedOutput, -output)
         }
 
+
         val measurements = interpreter.runAndMeasure()
         println(measurements)
-        println(programSetOutput.getDouble(0, 0))
-        println(programSetOutput.getDouble(0, 1))
-        println(programSetOutput.getDouble(1, 0))
-        println(programSetOutput.getDouble(1, 1))
 
         run {
-            val output = programSetOutput.getDouble(0, 0)
-            assertEquals(expectedOutput, output)
+            assertEquals(expectedOutput, programSetOutput[0, 0])
+            assertEquals(expectedOutput * factor, programSetOutput[0, 1])
         }
 
         run {
-            val output = programSetOutput.getDouble(1, 0)
-            assertEquals(expectedOutput, -output)
+            assertEquals(-expectedOutput, programSetOutput[1, 0])
+            assertEquals(-expectedOutput * factor, programSetOutput[1, 1])
         }
     }
 }
