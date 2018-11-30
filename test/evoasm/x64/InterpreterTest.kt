@@ -12,8 +12,8 @@ internal class InterpreterTest {
     @Test
     fun runAllInstructions() {
         val programInput = LongProgramInput(1, 2)
-        programInput.set(0, 0x1L)
-        programInput.set(1, 0x2L)
+        programInput.set(0, 0, 0x1L)
+        programInput.set(0,1, 0x2L)
         val defaultOptions = InterpreterOptions.DEFAULT
         val instructionCount = defaultOptions.instructions.size
         println(defaultOptions.instructions.size)
@@ -45,8 +45,8 @@ internal class InterpreterTest {
         val programSize = 10_000
         val expectedOutput = programSize.toLong()
         val programInput = LongProgramInput(1, 2)
-        programInput.set(0, 0x0L)
-        programInput.set(1, 0x1L)
+        programInput.set(0, 0, 0x0L)
+        programInput.set(0, 1, 0x1L)
         val options = InterpreterOptions.DEFAULT
         val programSet = ProgramSet(1, programSize)
         val programSetOutput = LongProgramSetOutput(programSet, programInput)

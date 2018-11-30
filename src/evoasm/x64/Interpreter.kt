@@ -81,8 +81,8 @@ class LongProgramInput(size: Int, arity: Int) : ProgramInput(size, arity) {
         storage.allocate()
     }
 
-    operator fun set(index: Int, value: Long) {
-        storage.field.set(index, value)
+    operator fun set(rowIndex: Int, columnIndex: Int, value: Long) {
+        storage.field.set(rowIndex, columnIndex, value)
     }
 
     override fun emitLoad(assembler: Assembler) {
@@ -105,8 +105,8 @@ class DoubleProgramInput(size: Int, arity: Int) : ProgramInput(size, arity) {
         storage.allocate()
     }
 
-    operator fun set(index0: Int, index1: Int, value: Double) {
-        storage.field.set(index0, index1, value)
+    operator fun set(rowIndex: Int, columnIndex: Int, value: Double) {
+        storage.field.set(rowIndex, columnIndex, value)
     }
 
     override fun emitLoad(assembler: Assembler) {

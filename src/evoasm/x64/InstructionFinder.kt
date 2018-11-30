@@ -2,9 +2,10 @@ package evoasm.x64
 
 import kasm.x64.Instruction
 
-class InstructionFinder(inputArity: Int) {
+class InstructionFinder(inputArity: Int, vararg values: Long) {
 
-    private val programInput = LongProgramInput(inputArity, 1)
+    private val rows = values.toList().chunked(inputArity + 1)
+    private val programInput = LongProgramInput(rows.size, inputArity)
     private val interpreterOptions = InterpreterOptions.DEFAULT
     private val programSet = ProgramSet(interpreterOptions.instructions.size, 1)
     private val programOutput = LongProgramSetOutput(programSet, programInput)
@@ -16,28 +17,27 @@ class InstructionFinder(inputArity: Int) {
         }
     }
 
-    fun find(vararg values: Long) {
-        val rows = values.toList().chunked(programInput.arity + 1)
+    fun find() {
         val instructions = mutableSetOf<Instruction>()
 
-        for(row in rows) {
-            val rowInstructions = mutableSetOf<Instruction>()
-            val output = row.last()
-            for(i in 0 until programInput.arity) {
-                programInput.set(i, row[i])
+        rows.forEachIndexed { rowIndex, row ->
+            for (columnIndex in 0 until programInput.arity) {
+                programInput[rowIndex, columnIndex] = row[columnIndex]
             }
-            interpreter.run()
-            for (i in 0 until programSet.size) {
-                if(programOutput.getLong(i, 0) == output) {
-                    val instruction = interpreter.getInstruction(programSet.get(i, 0))
-                    rowInstructions.add(instruction)
+        }
+
+        interpreter.run()
+
+        outerFor@
+        for (i in 0 until programSet.size) {
+            for(rowIndex in rows.indices) {
+                if(programOutput.getLong(i, rowIndex) != rows[rowIndex].last()) {
+                    continue@outerFor
                 }
             }
-            if(instructions.isEmpty()) {
-                instructions.addAll(rowInstructions)
-            } else {
-                instructions.retainAll(rowInstructions)
-            }
+
+            val instruction = interpreter.getInstruction(programSet.get(i, 0))
+            instructions.add(instruction)
         }
 
         println("FOUND: $instructions")
@@ -46,9 +46,10 @@ class InstructionFinder(inputArity: Int) {
 }
 
 fun main() {
-    val f = InstructionFinder(1)
-    f.find(0b0111, 3,
+    val f = InstructionFinder(1,
+                              0b0111, 3,
            0b1, 1,
            0b1111, 4,
            0b11111, 5)
+    f.find()
 }
