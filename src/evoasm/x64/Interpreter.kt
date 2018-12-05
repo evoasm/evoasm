@@ -13,230 +13,9 @@ inline class InterpreterInstruction(val index: UShort) {
 
 }
 
-abstract class ProgramInput(val size: Int, val arity: Int) {
-    init {
-        require(size > 0)
-        require(size <= Short.MAX_VALUE)
-        require(arity > 0)
-    }
-    abstract fun emitLoad(assembler: Assembler)
-
-    protected fun <R: Register> emitLoad(assembler: Assembler, address: Address, registers: List<R>, elementSize: Int, block: (R, AddressExpression64) -> Unit) {
-        with(assembler) {
-
-            if(size != 1) {
-                val rowSize = size * arity * elementSize
-                mov(Interpreter.SCRATCH_REGISTER1, address.toLong() + rowSize)
-                movzx(Interpreter.SCRATCH_REGISTER2, Interpreter.COUNTERS_REGISTER.subRegister16)
-
-                Interpreter.emitMultiplication(assembler, Interpreter.SCRATCH_REGISTER2, arity * elementSize)
-                sub(Interpreter.SCRATCH_REGISTER1, Interpreter.SCRATCH_REGISTER2)
-
-//                when {
-//                    multiplier % 2 == 0 -> {
-//                        val shiftSize = (31 - Integer.numberOfLeadingZeros(bufferSize)).toByte()
-//                        sal(Interpreter.SCRATCH_REGISTER2, shiftSize)
-//                    }
-//                    multiplier <= Byte.MAX_VALUE -> {
-//                        imul(Interpreter.SCRATCH_REGISTER2, Interpreter.SCRATCH_REGISTER2, multiplier.toByte())
-//                    }
-//                    else -> {
-//                        imul(Interpreter.SCRATCH_REGISTER2, Interpreter.SCRATCH_REGISTER2, multiplier)
-//                    }
-//                }
-            } else {
-                mov(Interpreter.SCRATCH_REGISTER1, address.toLong())
-            }
-
-            registers.forEachIndexed { index, register ->
-                block(register,AddressExpression64(base = Interpreter.SCRATCH_REGISTER1) )
-                if(index < registers.lastIndex) {
-                    if ((index + 1) % arity == 0) {
-                        val immediate = (arity - 1) * elementSize
-                        if(immediate <= Byte.MAX_VALUE) {
-                            sub(Interpreter.SCRATCH_REGISTER1, immediate.toByte())
-                        } else {
-                            sub(Interpreter.SCRATCH_REGISTER1, immediate)
-                        }
-                    } else {
-                        lea(Interpreter.SCRATCH_REGISTER1,
-                            AddressExpression64(Interpreter.SCRATCH_REGISTER1, elementSize))
-                    }
-                }
-            }
-        }
-    }
-}
-
-class LongProgramInput(size: Int, arity: Int) : ProgramInput(size, arity) {
-    private val storage: Storage
-
-    private class Storage(size: Int, arity: Int) : Structure() {
-        val field = longField(size, arity)
-    }
-
-    init {
-        require(arity < Interpreter.GP_REGISTERS.size)
-        storage = Storage(size, arity)
-        storage.allocate()
-    }
-
-    operator fun set(rowIndex: Int, columnIndex: Int, value: Long) {
-        storage.field.set(rowIndex, columnIndex, value)
-    }
-
-    override fun emitLoad(assembler: Assembler) {
-        emitLoad(assembler, storage.field.address, Interpreter.GP_REGISTERS, Long.SIZE_BYTES) { register, addressExpression ->
-            assembler.mov(register, addressExpression)
-        }
-    }
-}
-
-class DoubleProgramInput(size: Int, arity: Int) : ProgramInput(size, arity) {
-    private val storage: Storage
-
-    private class Storage(size: Int, arity: Int) : Structure() {
-        val field = doubleField(size, arity)
-    }
-
-    init {
-        require(arity < Interpreter.XMM_REGISTERS.size)
-        storage = Storage(size, arity)
-        storage.allocate()
-    }
-
-    operator fun set(rowIndex: Int, columnIndex: Int, value: Double) {
-        storage.field.set(rowIndex, columnIndex, value)
-    }
-
-    override fun emitLoad(assembler: Assembler) {
-        emitLoad(assembler, storage.field.address, Interpreter.XMM_REGISTERS, Long.SIZE_BYTES) { register, addressExpression ->
-            assembler.movDouble(register, addressExpression)
-        }
-
-//        Interpreter.XMM_REGISTERS.forEachIndexed { index, register ->
-//            with(assembler) {
-//                mov(Interpreter.SCRATCH_REGISTER1, storage.field.getAddress(index % arity).toLong())
-//                movsd(register, AddressExpression64(base = Interpreter.SCRATCH_REGISTER1))
-//            }
-//        }
-    }
-}
-
-abstract class ProgramSetOutput(programSet: ProgramSet, programInput: ProgramInput) {
-    protected abstract val structure: Structure
-    internal val buffer get() = structure.buffer
-    val size = programInput.size
-
-    internal abstract fun emitStore(assembler: Assembler)
-
-    protected fun emitStore(assembler: Assembler, address: Address, elementSize: Int, block: (AddressExpression64) -> Unit) {
-        require(elementSize % 2 == 0)
-
-        with(assembler) {
-            mov(Interpreter.SCRATCH_REGISTER1, Interpreter.COUNTERS_REGISTER)
-
-            if(size != 1) {
-                shr(Interpreter.SCRATCH_REGISTER1, 16)
-                Interpreter.emitMultiplication(assembler, Interpreter.SCRATCH_REGISTER1, size * elementSize)
-                movzx(Interpreter.SCRATCH_REGISTER2, Interpreter.COUNTERS_REGISTER.subRegister16)
-                sal(Interpreter.SCRATCH_REGISTER2, log2(elementSize).toByte())
-                sub(Interpreter.SCRATCH_REGISTER1, Interpreter.SCRATCH_REGISTER2)
-                println("OUTPUT ADDRESS IS ${address}")
-                mov(Interpreter.SCRATCH_REGISTER2, address.toLong() + size * elementSize)
-                add(Interpreter.SCRATCH_REGISTER1, Interpreter.SCRATCH_REGISTER2)
-                block(AddressExpression64(Interpreter.SCRATCH_REGISTER1))
-            } else {
-                // TODO: if elementSize == 1, can use scale, if address is 32-bit can use displacement
-                sal(Interpreter.SCRATCH_REGISTER1, log2(elementSize).toByte())
-                mov(Interpreter.SCRATCH_REGISTER2, address)
-                add(Interpreter.SCRATCH_REGISTER1, Interpreter.SCRATCH_REGISTER2)
-                block(AddressExpression64(base = Interpreter.SCRATCH_REGISTER1))
-            }
-        }
-    }
-}
-
-abstract class ValueProgramSetOutput<T>(programSet: ProgramSet, programInput: ProgramInput) : ProgramSetOutput(programSet, programInput) {
-    abstract operator fun get(programIndex: Int, outputIndex: Int): T
-}
-
-class LongProgramSetOutput(programSet: ProgramSet, programInput: ProgramInput) : ValueProgramSetOutput<Long>(programSet, programInput) {
-    override val structure: Structure get() = storage
-    private val storage: Storage
-
-    private class Storage(programCount: Int, inputSize: Int) : Structure() {
-        val field = longField(programCount, inputSize)
-    }
-
-    init {
-        storage = Storage(programSet.size, programInput.size)
-        storage.allocate()
-    }
-
-    fun getLong(programIndex: Int, outputIndex: Int): Long {
-        return storage.field.get(programIndex, outputIndex)
-    }
-
-    override operator fun get(programIndex: Int, outputIndex: Int): Long {
-        return getLong(programIndex, outputIndex)
-    }
-
-    override fun emitStore(assembler: Assembler) {
-
-        emitStore(assembler, storage.field.address, 8) {
-            val outputRegister = Interpreter.GP_REGISTERS.first()
-            assembler.mov(it, outputRegister)
-        }
-
-//        assembler.mov(AddressExpression64(base = null,
-//                                          index = Interpreter.SCRATCH_REGISTER1,
-//                                          scale = Scale.X8,
-//                                          displacement = address), outputRegister)
-    }
-}
-
-class DoubleProgramSetOutput(programSet: ProgramSet, programInput: ProgramInput) : ValueProgramSetOutput<Double>(programSet, programInput) {
-    override val structure: Structure get() = storage
-    private val storage: Storage
-
-    private class Storage(programCount: Int, inputSize: Int) : Structure() {
-        val field = doubleField(programCount, inputSize, alignment = 16)
-    }
-
-    init {
-        storage = Storage(programSet.size, programInput.size)
-        storage.allocate()
-    }
-
-    fun getDouble(programIndex: Int, columnIndex: Int): Double {
-        return storage.field.get(programIndex, columnIndex)
-    }
-
-    override operator fun get(programIndex: Int, outputIndex: Int): Double {
-        return getDouble(programIndex, outputIndex)
-    }
-
-    override fun emitStore(assembler: Assembler) {
-
-        emitStore(assembler, storage.field.address, 8) {
-            val outputRegister = Interpreter.XMM_REGISTERS.first()
-            assembler.movDouble(it, outputRegister)
-        }
-
-//        val outputRegister = Interpreter.XMM_REGISTERS.first()
-//        assembler.mov(Interpreter.SCRATCH_REGISTER1, Interpreter.COUNTERS_REGISTER)
-//        assembler.sar(Interpreter.SCRATCH_REGISTER1, 16)
-//        assembler.movsd(AddressExpression64(base = null,
-//                                            index = Interpreter.SCRATCH_REGISTER1,
-//                                            scale = Scale.X8,
-//                                            displacement = address), outputRegister)
-    }
-}
-
 
 class Interpreter(val programSet: ProgramSet,
-                  val input: ProgramInput,
+                  val setInput: ProgramSetInput,
                   val output: ProgramSetOutput,
                   val options: InterpreterOptions = InterpreterOptions.DEFAULT) {
 
@@ -291,14 +70,14 @@ class Interpreter(val programSet: ProgramSet,
 
         private fun checkRegister(register: Register) {
 
-            val register_ = when (register) {
+            val actualRegister = when (register) {
                 is GpRegister32 -> register.topLevelRegister
                 is GpRegister16 -> register.topLevelRegister
                 is GpRegister8  -> register.topLevelRegister
                 else            -> register
             }
-            check(register_ in gpRegisters || register in xmmRegisters || register in ymmRegisters || register in mmRegisters,
-                  { "invalid register ${register} (${register_})" })
+            check(actualRegister in gpRegisters || register in xmmRegisters || register in ymmRegisters || register in mmRegisters
+                 ) { "invalid register ${register} (${actualRegister})" }
         }
 
         override fun traceWrite(register: Register, implicit: Boolean, range: BitRange?, always: Boolean) {
@@ -332,10 +111,10 @@ class Interpreter(val programSet: ProgramSet,
             usedRegisters.clear()
         }
 
-        override fun traceRead(rflag: RflagsField) {}
-        override fun traceWrite(rflag: RflagsField, always: Boolean) {}
-        override fun traceRead(mxcsrFlag: MxcsrField) {}
-        override fun traceWrite(mxcsrFlag: MxcsrField, always: Boolean) {}
+        override fun traceRead(rflagsField: RflagsField) {}
+        override fun traceWrite(rflagsField: RflagsField, always: Boolean) {}
+        override fun traceRead(mxcsrField: MxcsrField) {}
+        override fun traceWrite(mxcsrField: MxcsrField, always: Boolean) {}
     }
 
 
@@ -604,10 +383,10 @@ class Interpreter(val programSet: ProgramSet,
         emit()
 
         println(instructions.contentToString())
-        check(getEndInterpreterInstruction() == ProgramSet.END_INSTRUCTION,
-              { "invalid end instruction (${ProgramSet.END_INSTRUCTION} should be ${getEndInterpreterInstruction()})" })
-        check(getHaltInterpreterInstruction() == ProgramSet.HALT_INSTRUCTION,
-              { "invalid halt instruction (${ProgramSet.HALT_INSTRUCTION} should be ${getHaltInterpreterInstruction()})" })
+        check(getEndInterpreterInstruction() == ProgramSet.END_INSTRUCTION
+             ) { "invalid end instruction (${ProgramSet.END_INSTRUCTION} should be ${getEndInterpreterInstruction()})" }
+        check(getHaltInterpreterInstruction() == ProgramSet.HALT_INSTRUCTION
+             ) { "invalid halt instruction (${ProgramSet.HALT_INSTRUCTION} should be ${getHaltInterpreterInstruction()})" }
 //        programSet._init(this)
         println(buffer.toByteString())
     }
@@ -668,25 +447,14 @@ class Interpreter(val programSet: ProgramSet,
     private fun emitEndInstruction() {
         with(assembler) {
             emitInstruction {
-
-
-                // extract program counter
-//                mov(SCRATCH_REGISTER1, COUNTERS_REGISTER)
-
-                //FIXME: if we have instruction counter
-                // { shr(SCRATCH_REGISTER1, 16) }
-
                 // store result
                 emitOutputStore()
-                // load inputs
-
-                if(input.size != 1) {
+                if(setInput.size != 1) {
                     val inputCounterSubRegister = COUNTERS_REGISTER.subRegister16
                     // decrease input count
                     dec(inputCounterSubRegister)
                     ifNotEqual(
                             {
-                                //mov(IP_REGISTER, programSet.address.toLong())
                                 sub(IP_REGISTER, OPCODE_SIZE * (programSet.programSize + 1))
                             },
                             {
@@ -695,37 +463,31 @@ class Interpreter(val programSet: ProgramSet,
                                 //inc(COUNTERS_REGISTER)
 
                                 // reset input counter
-                                mov(inputCounterSubRegister, input.size.toShort())
+                                mov(inputCounterSubRegister, setInput.size.toShort())
                             }
                               )
                 } else {
-                    inc(COUNTERS_REGISTER)
+                    inc(COUNTERS_REGISTER.subRegister32)
                 }
 
-                input.emitLoad(assembler)
+                // reset flags
+                // NOTE: this includes only SF, ZF, AF, PF, and CF
+                xor(GpRegister32.EAX, GpRegister32.EAX)
+                sahfAh()
+
+                // load inputs
+                setInput.emitLoad(assembler)
 
             }
         }
     }
 
     private fun emitDispatch() {
-        val interpreter = this
         with(assembler) {
             // load next opcode
             movzx(SCRATCH_REGISTER1, AddressExpression16(IP_REGISTER))
-//            if(firstInstructionAddress > 0) {
-//                add(SCRATCH_REGISTER1.subRegister32, firstInstructionAddress)
-//            } else {
-//                add(SCRATCH_REGISTER1.subRegister32, 0xdeadbeef.toInt())
-//                firstInstructionLinkPoint = Assembler.JumpLinkPoint(buffer, relative = false)
-//            }
-
             lea(SCRATCH_REGISTER1, AddressExpression64(FIRST_INSTRUCTION_ADDRESS_REGISTER, SCRATCH_REGISTER1, Scale.X8))
             jmp(SCRATCH_REGISTER1)
-//            sal(SCRATCH_REGISTER1, 3);
-//            add(SCRATCH_REGISTER1, FIRST_INSTRUCTION_ADDRESS_REGISTER)
-//            jmp(SCRATCH_REGISTER1)
-//            jmp(AddressExpression64(FIRST_INSTRUCTION_ADDRESS_REGISTER, SCRATCH_REGISTER1, Scale._4))
         }
     }
 
@@ -737,11 +499,6 @@ class Interpreter(val programSet: ProgramSet,
 
     private fun emitInstructionEpilog(dispatch: Boolean) {
         with(assembler) {
-            // increment per program instruction counter
-            // inc(COUNTERS_REGISTER)
-            // extract lower counter
-            // movzx(SCRATCH_REGISTER1, COUNTERS_REGISTER.subRegister16)
-
             if (dispatch) emitDispatch()
             align(INSTRUCTION_ALIGNMENT)
         }
@@ -749,20 +506,17 @@ class Interpreter(val programSet: ProgramSet,
 
 
     private fun emitInterpreterProlog() {
-        val interpreter = this
         with(assembler) {
             // let IP point to first opcode
             emitRflagsReset()
             mov(IP_REGISTER, programSet.address.toLong())
             firstInstructionLinkPoint = mov(FIRST_INSTRUCTION_ADDRESS_REGISTER)
-            if(input.size == 1) {
+            if(setInput.size == 1) {
                 xor(COUNTERS_REGISTER, COUNTERS_REGISTER)
             } else {
-                mov(COUNTERS_REGISTER, input.size)
+                mov(COUNTERS_REGISTER, setInput.size)
             }
-            input.emitLoad(assembler)
-
-//            mov(FIRST_INSTRUCTION_ADDRESS_REGISTER, instructionIndices.address.toInt())
+            setInput.emitLoad(assembler)
             emitDispatch()
             align(INSTRUCTION_ALIGNMENT)
         }
@@ -901,7 +655,7 @@ class Interpreter(val programSet: ProgramSet,
                         is YmmYmmm256Instruction -> instruction.encode(buffer,
                                                                        destinationRegister as YmmRegister,
                                                                        sourceRegister as YmmRegister)
-                        is YmmYmmm256Instruction -> instruction.encode(buffer,
+                        is Ymmm256YmmInstruction -> instruction.encode(buffer,
                                                                        destinationRegister as YmmRegister,
                                                                        sourceRegister as YmmRegister)
                     }
@@ -956,7 +710,7 @@ class Interpreter(val programSet: ProgramSet,
         }.toDouble()
 
         val elapsedSeconds = nanoTime / 1E9
-        val instructionsPerSecond = (programSet.instructionCount * input.size) / elapsedSeconds
+        val instructionsPerSecond = (programSet.instructionCount * setInput.size) / elapsedSeconds
         return RunMeasurements(elapsedSeconds, instructionsPerSecond)
     }
 
@@ -998,7 +752,7 @@ class ProgramSet(val size: Int, val programSize: Int) {
 }
 
 fun main() {
-//    val programInput = LongProgramInput(1, )
+//    val programInput = LongProgramSetInput(1, )
 //    programInput.set(0, 0x1L)
 //    val programSet = ProgramSet(1, 1)
 //    val programSetOutput = LongProgramSetOutput(programSet)

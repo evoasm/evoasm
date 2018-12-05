@@ -2,8 +2,11 @@ package evoasm.x64
 
 import kasm.x64.AddRm64R64
 import kasm.x64.AddsdXmm0To63Xmmm64
+import kasm.x64.SubRm64R64
 import kasm.x64.SubsdXmm0To63Xmmm64
 import org.junit.jupiter.api.Test
+
+
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 
@@ -11,7 +14,7 @@ internal class InterpreterTest {
 
     @Test
     fun runAllInstructions() {
-        val programInput = LongProgramInput(1, 2)
+        val programInput = LongProgramSetInput(1, 2)
         programInput.set(0, 0, 0x1L)
         programInput.set(0,1, 0x2L)
         val defaultOptions = InterpreterOptions.DEFAULT
@@ -28,12 +31,6 @@ internal class InterpreterTest {
             }
         }
 
-//        val buffer = ShortArray(programSet.byteBuffer.bufferSize() / Short.SIZE_BYTES)
-//        programSet.byteBuffer.asShortBuffer().get(buffer)
-//        println("byte code")
-//        println(buffer.contentToString())
-//        println("/byte code")
-
         val measurements = interpreter.runAndMeasure()
         println(measurements)
 
@@ -41,10 +38,10 @@ internal class InterpreterTest {
     }
 
     @Test
-    fun add() {
+    fun addLong() {
         val programSize = 10_000
         val expectedOutput = programSize.toLong()
-        val programInput = LongProgramInput(1, 2)
+        val programInput = LongProgramSetInput(1, 2)
         programInput.set(0, 0, 0x0L)
         programInput.set(0, 1, 0x1L)
         val options = InterpreterOptions.DEFAULT
@@ -70,11 +67,77 @@ internal class InterpreterTest {
     }
 
     @Test
+    fun addSubLong() {
+        val programSize = 10_000
+        val expectedOutput = programSize.toLong()
+        val programInput = LongProgramSetInput(1, 2)
+        programInput.set(0, 0, 0x0L)
+        programInput.set(0, 1, 0x1L)
+        val options = InterpreterOptions.DEFAULT
+        val programSet = ProgramSet(2, programSize)
+        val programSetOutput = LongProgramSetOutput(programSet, programInput)
+        val interpreter = Interpreter(programSet, programInput, programSetOutput, options = options)
+
+        for (i in 0 until programSet.programSize) {
+            programSet.set(0, i, interpreter.getInterpreterInstruction(AddRm64R64)!!)
+        }
+
+        for (i in 0 until programSet.programSize) {
+            programSet.set(1, i, interpreter.getInterpreterInstruction(SubRm64R64)!!)
+        }
+
+        run {
+            val output = programSetOutput.getLong(0, 0)
+            assertNotEquals(expectedOutput, output)
+        }
+
+        val measurements = interpreter.runAndMeasure()
+        println(measurements)
+
+        run {
+            assertEquals(expectedOutput, programSetOutput.getLong(0, 0))
+            assertEquals(-expectedOutput, programSetOutput.getLong(1, 0))
+        }
+    }
+
+    @Test
     fun addDouble() {
+        val programSize = 100_000
+        val expectedOutput = programSize.toDouble()
+        val programInput = DoubleProgramSetInput(1, 2)
+
+        programInput[0, 0] = 0.0
+        programInput[0, 1] = 1.0
+
+        val options = InterpreterOptions.DEFAULT
+        val programSet = ProgramSet(2, programSize)
+        val programSetOutput = DoubleProgramSetOutput(programSet, programInput)
+        val interpreter = Interpreter(programSet, programInput, programSetOutput, options = options)
+
+        for (j in 0 until programSet.programSize) {
+            programSet.set(0, j, interpreter.getInterpreterInstruction(AddsdXmm0To63Xmmm64)!!)
+        }
+
+        run {
+            val output = programSetOutput.getDouble(0, 0)
+            assertNotEquals(expectedOutput, output)
+        }
+
+
+        val measurements = interpreter.runAndMeasure()
+        println(measurements)
+
+        run {
+            assertEquals(expectedOutput, programSetOutput[0, 0])
+        }
+    }
+
+    @Test
+    fun addSubDoubleWithMultipleInputs() {
         val programSize = 100_000
         val factor = 4.0;
         val expectedOutput = programSize.toDouble()
-        val programInput = DoubleProgramInput(2, 2)
+        val programInput = DoubleProgramSetInput(2, 2)
 
         programInput[0, 0] = 0.0
         programInput[0, 1] = 1.0
