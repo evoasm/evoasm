@@ -5,10 +5,10 @@ import kasm.x64.MovR64Rm64
 import kasm.x64.MoveInstruction
 import kasm.x64.MovsdXmmm64Xmm
 
-class InterpreterOptions(instructions: List<Instruction>,
+class InterpreterOptions(instructions: List<Instruction> = defaultInstructions,
                          val allowUnsupportedInstructions: Boolean = false,
                          val safeDivision: Boolean = true,
-                         val moveInstructions: List<MoveInstruction>) {
+                         val moveInstructions: List<MoveInstruction> = defaultMoveInstructions) {
 
     companion object {
         private fun supportedInstruction(i0: Instruction,
@@ -29,7 +29,7 @@ class InterpreterOptions(instructions: List<Instruction>,
             return listOf(MovR64Rm64, MovsdXmmm64Xmm)
         }
 
-        val DEFAULT = InterpreterOptions(instructions = defaultInstructions, moveInstructions = defaultMoveInstructions)
+        val DEFAULT = InterpreterOptions()
     }
 
     val instructions: List<Instruction>

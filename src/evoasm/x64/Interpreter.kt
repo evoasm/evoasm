@@ -47,8 +47,8 @@ class Interpreter(val programSet: ProgramSet,
         internal val SCRATCH_REGISTER2 = R15
         internal val GP_REGISTERS = listOf(RAX, RBX, RCX, RDX, RDI, RSI, R8, R9, R10, R11)
         internal val XMM_REGISTERS = XmmRegister.values().filter { it.isSupported() }.toList()
-        private val YMM_REGISTERS = YmmRegister.values().filter { it.isSupported() }.toList()
-        private val MM_REGISTERS = MmRegister.values().toList()
+        internal val YMM_REGISTERS = YmmRegister.values().filter { it.isSupported() }.toList()
+        internal val MM_REGISTERS = MmRegister.values().toList()
         private val DIV_INSTRUCTIONS = setOf(
                 IdivRm8Ax,
                 IdivRm16AxDx,

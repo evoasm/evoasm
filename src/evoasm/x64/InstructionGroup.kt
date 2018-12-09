@@ -28,123 +28,133 @@ enum class InstructionGroup(vararg instructions: Instruction) {
             Stc
                        ),
 
-    ARITHMETIC_GP_INSTRUCTIONS(
+
+    ARITHMETIC_GP8_INSTRUCTIONS(
             AdcAlImm8,
-            AdcAxImm16,
-            AdcEaxImm32,
-            AdcRaxImm32,
             AdcRm8Imm8,
-            AdcRm16Imm16,
-            AdcRm32Imm32,
-            AdcRm64Imm32,
-            AdcRm16Imm8,
-            AdcRm32Imm8,
-            AdcRm64Imm8,
             AdcRm8R8,
-            AdcRm16R16,
-            AdcRm32R32,
-            AdcRm64R64,
             AdcR8Rm8,
-            AdcR16Rm16,
-            AdcR32Rm32,
-            AdcR64Rm64,
-            AdcxR32Rm32,
-            AdcxR64Rm64,
             AddAlImm8,
-            AddAxImm16,
-            AddEaxImm32,
-            AddRaxImm32,
             AddRm8Imm8,
-            AddRm16Imm16,
-            AddRm32Imm32,
-            AddRm64Imm32,
-            AddRm16Imm8,
-            AddRm32Imm8,
-            AddRm64Imm8,
             AddRm8R8,
-            AddRm16R16,
-            AddRm32R32,
-            AddRm64R64,
             AddR8Rm8,
-            AddR16Rm16,
-            AddR32Rm32,
-            AddR64Rm64,
-            AdoxR32Rm32,
-            AdoxR64Rm64,
             SubAlImm8,
-            SubAxImm16,
-            SubEaxImm32,
-            SubRaxImm32,
             SubRm8Imm8,
-            SubRm16Imm16,
-            SubRm32Imm32,
-            SubRm64Imm32,
-            SubRm16Imm8,
-            SubRm32Imm8,
-            SubRm64Imm8,
             SubRm8R8,
-            SubRm16R16,
-            SubRm32R32,
-            SubRm64R64,
             SubR8Rm8,
-            SubR16Rm16,
-            SubR32Rm32,
-            SubR64Rm64,
             DivRm8Ax,
-            DivRm16AxDx,
-            DivRm32EdxEax,
-            DivRm64RdxRax,
             IdivRm8Ax,
-            IdivRm16AxDx,
-            IdivRm32EdxEax,
-            IdivRm64RdxRax,
             ImulRm8Ax,
-            ImulRm16AxDx,
-            ImulRm32EdxEax,
-            ImulRm64RdxRax,
-            ImulR16Rm16,
-            ImulR32Rm32,
-            ImulR64Rm64,
-            ImulR16Rm16Imm8,
-            ImulR32Rm32Imm8,
-            ImulR64Rm64Imm8,
-            ImulR16Rm16Imm16,
-            ImulR32Rm32Imm32,
-            ImulR64Rm64Imm32,
             IncRm8,
-            IncRm16,
-            IncRm32,
-            IncRm64,
             DecRm8,
-            DecRm16,
-            DecRm32,
-            DecRm64,
             SbbAlImm8,
-            SbbAxImm16,
-            SbbEaxImm32,
-            SbbRaxImm32,
             SbbRm8Imm8,
-            SbbRm16Imm16,
-            SbbRm32Imm32,
-            SbbRm64Imm32,
-            SbbRm16Imm8,
-            SbbRm32Imm8,
-            SbbRm64Imm8,
             SbbRm8R8,
-            SbbRm16R16,
-            SbbRm32R32,
-            SbbRm64R64,
             SbbR8Rm8,
+            MulRm8Ax
+            ),
+
+    ARITHMETIC_GP16_INSTRUCTIONS(
+            AdcAxImm16,
+            AdcRm16Imm16,
+            AdcRm16Imm8,
+            AdcRm16R16,
+            AdcR16Rm16,
+            AddAxImm16,
+            AddRm16Imm16,
+            AddRm16Imm8,
+            AddRm16R16,
+            AddR16Rm16,
+            SubAxImm16,
+            SubRm16Imm16,
+            SubRm16Imm8,
+            SubRm16R16,
+            SubR16Rm16,
+            DivRm16AxDx,
+            IdivRm16AxDx,
+            ImulRm16AxDx,
+            ImulR16Rm16,
+            ImulR16Rm16Imm8,
+            ImulR16Rm16Imm16,
+            IncRm16,
+            DecRm16,
+            SbbAxImm16,
+            SbbRm16Imm16,
+            SbbRm16Imm8,
+            SbbRm16R16,
             SbbR16Rm16,
+            MulRm16AxDx
+            ),
+
+    ARITHMETIC_GP32_INSTRUCTIONS(
+            AdcEaxImm32,
+            AdcRm32Imm32,
+            AdcRm32Imm8,
+            AdcRm32R32,
+            AdcR32Rm32,
+            AdcxR32Rm32,
+            AddEaxImm32,
+            AddRm32Imm32,
+            AddRm32Imm8,
+            AddRm32R32,
+            AddR32Rm32,
+            AdoxR32Rm32,
+            SubEaxImm32,
+            SubRm32Imm32,
+            SubRm32Imm8,
+            SubRm32R32,
+            SubR32Rm32,
+            DivRm32EdxEax,
+            IdivRm32EdxEax,
+            ImulRm32EdxEax,
+            ImulR32Rm32,
+            ImulR32Rm32Imm8,
+            ImulR32Rm32Imm32,
+            IncRm32,
+            DecRm32,
+            SbbEaxImm32,
+            SbbRm32Imm32,
+            SbbRm32Imm8,
+            SbbRm32R32,
             SbbR32Rm32,
-            SbbR64Rm64,
-            MulRm8Ax,
-            MulRm16AxDx,
             MulRm32EdxEax,
+            MulxR32R32Rm32Edx
+            ),
+
+    ARITHMETIC_GP64_INSTRUCTIONS(
+            AdcRaxImm32,
+            AdcRm64Imm32,
+            AdcRm64Imm8,
+            AdcRm64R64,
+            AdcR64Rm64,
+            AdcxR64Rm64,
+            AddRaxImm32,
+            AddRm64Imm32,
+            AddRm64Imm8,
+            AddRm64R64,
+            AddR64Rm64,
+            AdoxR64Rm64,
+            SubRaxImm32,
+            SubRm64Imm32,
+            SubRm64Imm8,
+            SubRm64R64,
+            SubR64Rm64,
+            DivRm64RdxRax,
+            IdivRm64RdxRax,
+            ImulRm64RdxRax,
+            ImulR64Rm64,
+            ImulR64Rm64Imm8,
+            ImulR64Rm64Imm32,
+            IncRm64,
+            DecRm64,
+            SbbRaxImm32,
+            SbbRm64Imm32,
+            SbbRm64Imm8,
+            SbbRm64R64,
+            SbbR64Rm64,
             MulRm64RdxRax,
-            MulxR32R32Rm32Edx,
             MulxR64R64Rm64Rdx
-                              ),
+                                ),
 
     MISC_GP_INSTRUCTIONS(
             Crc32R32Rm8,
@@ -161,19 +171,13 @@ enum class InstructionGroup(vararg instructions: Instruction) {
                         ),
 
 
-    MISC_XMM_INSTRUCTIONS(
+    MISC_SEE_INSTRUCTIONS(
             AesdecXmmXmmm128,
-            VaesdecXmmXmmXmmm128,
             AesdeclastXmmXmmm128,
-            VaesdeclastXmmXmmXmmm128,
             AesencXmmXmmm128,
-            VaesencXmmXmmXmmm128,
             AesenclastXmmXmmm128,
-            VaesenclastXmmXmmXmmm128,
             AesimcXmmXmmm128,
-            VaesimcXmmXmmm128,
             AeskeygenassistXmmXmmm128Imm8,
-            VaeskeygenassistXmmXmmm128Imm8,
             Sha1rnds4XmmXmmm128Imm8,
             Sha1nexteXmmXmmm128,
             Sha1msg1XmmXmmm128,
@@ -183,1182 +187,1610 @@ enum class InstructionGroup(vararg instructions: Instruction) {
             Sha256msg2XmmXmmm128
                          ),
 
-    LOGICAL_GP_INSTRUCTIONS(
+    MISC_AVX_XMM_INSTRUCTIONS(
+            VaesdecXmmXmmXmmm128,
+            VaesdeclastXmmXmmXmmm128,
+            VaesencXmmXmmXmmm128,
+            VaesenclastXmmXmmXmmm128,
+            VaesimcXmmXmmm128,
+            VaeskeygenassistXmmXmmm128Imm8
+                             ),
+
+
+    LOGICAL_GP8_INSTRUCTIONS(
             AndAlImm8,
-            AndAxImm16,
-            AndEaxImm32,
-            AndRaxImm32,
             AndRm8Imm8,
-            AndRm16Imm16,
-            AndRm32Imm32,
-            AndRm64Imm32,
-            AndRm16Imm8,
-            AndRm32Imm8,
-            AndRm64Imm8,
             AndRm8R8,
-            AndRm16R16,
-            AndRm32R32,
-            AndRm64R64,
             AndR8Rm8,
-            AndR16Rm16,
-            AndR32Rm32,
-            AndR64Rm64,
-            AndnR32R32Rm32,
-            AndnR64R64Rm64,
-            BextrR32Rm32R32,
-            BextrR64Rm64R64,
-            BlsiR32Rm32,
-            BlsiR64Rm64,
-            BlsmskR32Rm32,
-            BlsmskR64Rm64,
-            BlsrR32Rm32,
-            BlsrR64Rm64,
-            BsfR16Rm16,
-            BsfR32Rm32,
-            BsfR64Rm64,
-            BsrR16Rm16,
-            BsrR32Rm32,
-            BsrR64Rm64,
-            BswapR32,
-            BswapR64,
-            BtRm16R16,
-            BtRm32R32,
-            BtRm64R64,
-            BtRm16Imm8,
-            BtRm32Imm8,
-            BtRm64Imm8,
-            BtcRm16R16,
-            BtcRm32R32,
-            BtcRm64R64,
-            BtcRm16Imm8,
-            BtcRm32Imm8,
-            BtcRm64Imm8,
-            BtrRm16R16,
-            BtrRm32R32,
-            BtrRm64R64,
-            BtrRm16Imm8,
-            BtrRm32Imm8,
-            BtrRm64Imm8,
-            BtsRm16R16,
-            BtsRm32R32,
-            BtsRm64R64,
-            BtsRm16Imm8,
-            BtsRm32Imm8,
-            BtsRm64Imm8,
-            BzhiR32Rm32R32,
-            BzhiR64Rm64R64,
-            LzcntR16Rm16,
-            LzcntR32Rm32,
-            LzcntR64Rm64,
-            TzcntR16Rm16,
-            TzcntR32Rm32,
-            TzcntR64Rm64,
-            PopcntR16Rm16,
-            PopcntR32Rm32,
-            PopcntR64Rm64,
             NegRm8,
-            NegRm16,
-            NegRm32,
-            NegRm64,
             NotRm8,
-            NotRm16,
-            NotRm32,
-            NotRm64,
             OrAlImm8,
-            OrAxImm16,
-            OrEaxImm32,
-            OrRaxImm32,
             OrRm8Imm8,
-            OrRm16Imm16,
-            OrRm32Imm32,
-            OrRm64Imm32,
-            OrRm16Imm8,
-            OrRm32Imm8,
-            OrRm64Imm8,
             OrRm8R8,
-            OrRm16R16,
-            OrRm32R32,
-            OrRm64R64,
             OrR8Rm8,
-            OrR16Rm16,
-            OrR32Rm32,
-            OrR64Rm64,
             XorAlImm8,
-            XorAxImm16,
-            XorEaxImm32,
-            XorRaxImm32,
             XorRm8Imm8,
-            XorRm16Imm16,
-            XorRm32Imm32,
-            XorRm64Imm32,
-            XorRm16Imm8,
-            XorRm32Imm8,
-            XorRm64Imm8,
             XorRm8R8,
-            XorRm16R16,
-            XorRm32R32,
-            XorRm64R64,
             XorR8Rm8,
-            XorR16Rm16,
-            XorR32Rm32,
-            XorR64Rm64,
-            RclRm81,
             RclRm8Cl,
             RclRm8Imm8,
+            RcrRm8Cl,
+            RcrRm8Imm8,
+            RolRm8Cl,
+            RolRm8Imm8,
+            RorRm8Cl,
+            RorRm8Imm8,
+            SalRm8Cl,
+            SalRm8Imm8,
+            SarRm8Cl,
+            SarRm8Imm8,
+            ShrRm8Cl,
+            ShrRm8Imm8,
+            RclRm81,
+            RcrRm81,
+            RolRm81,
+            RorRm81,
+            SalRm81,
+            SarRm81,
+            ShrRm81
+            ),
+
+    LOGICAL_GP16_INSTRUCTIONS(
+            AndAxImm16,
+            AndRm16Imm16,
+            AndRm16Imm8,
+            AndRm16R16,
+            AndR16Rm16,
+            BsfR16Rm16,
+            BsrR16Rm16,
+            BtRm16R16,
+            BtRm16Imm8,
+            BtcRm16R16,
+            BtcRm16Imm8,
+            BtrRm16R16,
+            BtrRm16Imm8,
+            BtsRm16R16,
+            BtsRm16Imm8,
+            LzcntR16Rm16,
+            TzcntR16Rm16,
+            PopcntR16Rm16,
+            NegRm16,
+            NotRm16,
+            OrAxImm16,
+            OrRm16Imm16,
+            OrRm16Imm8,
+            OrRm16R16,
+            OrR16Rm16,
+            XorAxImm16,
+            XorRm16Imm16,
+            XorRm16Imm8,
+            XorRm16R16,
+            XorR16Rm16,
             RclRm161,
             RclRm16Cl,
             RclRm16Imm8,
-            RclRm321,
-            RclRm641,
-            RclRm32Cl,
-            RclRm64Cl,
-            RclRm32Imm8,
-            RclRm64Imm8,
-            RcrRm81,
-            RcrRm8Cl,
-            RcrRm8Imm8,
             RcrRm161,
             RcrRm16Cl,
             RcrRm16Imm8,
-            RcrRm321,
-            RcrRm641,
-            RcrRm32Cl,
-            RcrRm64Cl,
-            RcrRm32Imm8,
-            RcrRm64Imm8,
-            RolRm81,
-            RolRm8Cl,
-            RolRm8Imm8,
             RolRm161,
             RolRm16Cl,
             RolRm16Imm8,
-            RolRm321,
-            RolRm641,
-            RolRm32Cl,
-            RolRm64Cl,
-            RolRm32Imm8,
-            RolRm64Imm8,
-            RorRm81,
-            RorRm8Cl,
-            RorRm8Imm8,
             RorRm161,
             RorRm16Cl,
             RorRm16Imm8,
-            RorRm321,
-            RorRm641,
-            RorRm32Cl,
-            RorRm64Cl,
-            RorRm32Imm8,
-            RorRm64Imm8,
-            RorxR32Rm32Imm8,
-            RorxR64Rm64Imm8,
-            SalRm81,
-            SalRm8Cl,
-            SalRm8Imm8,
             SalRm161,
             SalRm16Cl,
             SalRm16Imm8,
-            SalRm321,
-            SalRm641,
-            SalRm32Cl,
-            SalRm64Cl,
-            SalRm32Imm8,
-            SalRm64Imm8,
-            SarRm81,
-            SarRm8Cl,
-            SarRm8Imm8,
             SarRm161,
             SarRm16Cl,
             SarRm16Imm8,
-            SarRm321,
-            SarRm641,
-            SarRm32Cl,
-            SarRm64Cl,
-            SarRm32Imm8,
-            SarRm64Imm8,
             SalRm161M,
             SalRm16ClM,
-            SalRm321M,
-            SalRm641M,
-            SalRm32ClM,
-            SalRm64ClM,
-            ShrRm81,
-            ShrRm8Cl,
-            ShrRm8Imm8,
             ShrRm161,
             ShrRm16Cl,
             ShrRm16Imm8,
+            ShldRm16R16Imm8,
+            ShldRm16R16Cl,
+            ShrdRm16R16Imm8,
+            ShrdRm16R16Cl
+            ),
+
+    LOGICAL_GP32_INSTRUCTIONS(
+            AndEaxImm32,
+            AndRm32Imm32,
+            AndRm32Imm8,
+            AndRm32R32,
+            AndR32Rm32,
+            AndnR32R32Rm32,
+            BextrR32Rm32R32,
+            BlsiR32Rm32,
+            BlsmskR32Rm32,
+            BlsrR32Rm32,
+            BsfR32Rm32,
+            BsrR32Rm32,
+            BswapR32,
+            BtRm32R32,
+            BtRm32Imm8,
+            BtcRm32R32,
+            BtcRm32Imm8,
+            BtrRm32R32,
+            BtrRm32Imm8,
+            BtsRm32R32,
+            BtsRm32Imm8,
+            BzhiR32Rm32R32,
+            LzcntR32Rm32,
+            TzcntR32Rm32,
+            PopcntR32Rm32,
+            NegRm32,
+            NotRm32,
+            OrEaxImm32,
+            OrRm32Imm32,
+            OrRm32Imm8,
+            OrRm32R32,
+            OrR32Rm32,
+            XorEaxImm32,
+            XorRm32Imm32,
+            XorRm32Imm8,
+            XorRm32R32,
+            XorR32Rm32,
+            RclRm321,
+            RclRm32Cl,
+            RclRm32Imm8,
+            RcrRm321,
+            RcrRm32Cl,
+            RcrRm32Imm8,
+            RolRm321,
+            RolRm32Cl,
+            RolRm32Imm8,
+            RorRm321,
+            RorRm32Cl,
+            RorRm32Imm8,
+            RorxR32Rm32Imm8,
+            SalRm321,
+            SalRm32Cl,
+            SalRm32Imm8,
+            SarRm321,
+            SarRm32Cl,
+            SarRm32Imm8,
+            SalRm321M,
+            SalRm32ClM,
             ShrRm321,
-            ShrRm641,
             ShrRm32Cl,
-            ShrRm64Cl,
             ShrRm32Imm8,
-            ShrRm64Imm8,
             SarxR32Rm32R32,
             ShlxR32Rm32R32,
             ShrxR32Rm32R32,
+            ShldRm32R32Imm8,
+            ShldRm32R32Cl,
+            ShrdRm32R32Imm8,
+            ShrdRm32R32Cl,
+            PdepR32R32Rm32,
+            PextR32R32Rm32
+            ),
+
+    LOGICAL_GP64_INSTRUCTIONS(
+            AndRaxImm32,
+            AndRm64Imm32,
+            AndRm64Imm8,
+            AndRm64R64,
+            AndR64Rm64,
+            AndnR64R64Rm64,
+            BextrR64Rm64R64,
+            BlsiR64Rm64,
+            BlsmskR64Rm64,
+            BlsrR64Rm64,
+            BsfR64Rm64,
+            BsrR64Rm64,
+            BswapR64,
+            BtRm64R64,
+            BtRm64Imm8,
+            BtcRm64R64,
+            BtcRm64Imm8,
+            BtrRm64R64,
+            BtrRm64Imm8,
+            BtsRm64R64,
+            BtsRm64Imm8,
+            BzhiR64Rm64R64,
+            LzcntR64Rm64,
+            TzcntR64Rm64,
+            PopcntR64Rm64,
+            NegRm64,
+            NotRm64,
+            OrRaxImm32,
+            OrRm64Imm32,
+            OrRm64Imm8,
+            OrRm64R64,
+            OrR64Rm64,
+            XorRaxImm32,
+            XorRm64Imm32,
+            XorRm64Imm8,
+            XorRm64R64,
+            XorR64Rm64,
+            RclRm641,
+            RclRm64Cl,
+            RclRm64Imm8,
+            RcrRm641,
+            RcrRm64Cl,
+            RcrRm64Imm8,
+            RolRm641,
+            RolRm64Cl,
+            RolRm64Imm8,
+            RorRm641,
+            RorRm64Cl,
+            RorRm64Imm8,
+            RorxR64Rm64Imm8,
+            SalRm641,
+            SalRm64Cl,
+            SalRm64Imm8,
+            SarRm641,
+            SarRm64Cl,
+            SarRm64Imm8,
+            SalRm641M,
+            SalRm64ClM,
+            ShrRm641,
+            ShrRm64Cl,
+            ShrRm64Imm8,
             SarxR64Rm64R64,
             ShlxR64Rm64R64,
             ShrxR64Rm64R64,
-            ShldRm16R16Imm8,
-            ShldRm16R16Cl,
-            ShldRm32R32Imm8,
             ShldRm64R64Imm8,
-            ShldRm32R32Cl,
             ShldRm64R64Cl,
-            ShrdRm16R16Imm8,
-            ShrdRm16R16Cl,
-            ShrdRm32R32Imm8,
             ShrdRm64R64Imm8,
-            ShrdRm32R32Cl,
             ShrdRm64R64Cl,
-            PdepR32R32Rm32,
             PdepR64R64Rm64,
-            PextR32R32Rm32,
             PextR64R64Rm64
-                           ),
+                             ),
 
-    LOGICAL_XMM_INSTRUCTIONS(
+
+    COMPARE_GP8_INSTRUCTIONS(
+            CmpAlImm8,
+            CmpRm8Imm8,
+            CmpRm8R8,
+            CmpR8Rm8,
+            TestAlImm8,
+            TestRm8Imm8,
+            TestRm8R8
+            ),
+
+    COMPARE_GP16_INSTRUCTIONS(
+            CmpAxImm16,
+            CmpRm16Imm16,
+            CmpRm16Imm8,
+            CmpRm16R16,
+            CmpR16Rm16,
+            TestAxImm16,
+            TestRm16Imm16,
+            TestRm16R16
+            ),
+
+    COMPARE_GP32_INSTRUCTIONS(
+            CmpEaxImm32,
+            CmpRm32Imm32,
+            CmpRm32Imm8,
+            CmpRm32R32,
+            CmpR32Rm32,
+            TestEaxImm32,
+            TestRm32Imm32,
+            TestRm32R32
+            ),
+
+    COMPARE_GP64_INSTRUCTIONS(
+            CmpRaxImm32,
+            CmpRm64Imm32,
+            CmpRm64Imm8,
+            CmpRm64R64,
+            CmpR64Rm64,
+            TestRaxImm32,
+            TestRm64Imm32,
+            TestRm64R64
+                              ),
+
+
+    LOGICAL_PD_SSE_XMM_INSTRUCTIONS(
             AndpdXmmXmmm128,
-            VandpdXmmXmmXmmm128,
-            VandpdYmmYmmYmmm256,
-            AndpsXmmXmmm128,
-            VandpsXmmXmmXmmm128,
-            VandpsYmmYmmYmmm256,
             AndnpdXmmXmmm128,
-            VandnpdXmmXmmXmmm128,
-            VandnpdYmmYmmYmmm256,
-            AndnpsXmmXmmm128,
-            VandnpsXmmXmmXmmm128,
-            VandnpsYmmYmmYmmm256,
             XorpdXmmXmmm128,
-            VxorpdXmmXmmXmmm128,
-            VxorpdYmmYmmYmmm256,
+            OrpdXmmXmmm128
+                                   ),
+    LOGICAL_PS_SSE_XMM_INSTRUCTIONS(
+            AndpsXmmXmmm128,
+            AndnpsXmmXmmm128,
             XorpsXmmXmmm128,
-            VxorpsXmmXmmXmmm128,
-            VxorpsYmmYmmYmmm256,
-            OrpdXmmXmmm128,
-            VorpdXmmXmmXmmm128,
-            VorpdYmmYmmYmmm256,
-            OrpsXmmXmmm128,
-            VorpsXmmXmmXmmm128,
-            VorpsYmmYmmYmmm256,
+            OrpsXmmXmmm128
+                                   ),
+    LOGICAL_SSE_XMM_INSTRUCTIONS(
             PxorXmmXmmm128,
-            VpxorXmmXmmXmmm128,
-            VpxorYmmYmmYmmm256,
-            PandXmmXmmm128,
-            VpandXmmXmmXmmm128,
-            VpandYmmYmmYmmm256,
             PandnXmmXmmm128,
-            VpandnXmmXmmXmmm128,
-            VpandnYmmYmmYmmm256,
-            PslldqXmmImm8,
-            VpslldqXmmXmmImm8,
-            VpslldqYmmYmmImm8,
-            PsllwXmmXmmm128,
-            PsllwXmmImm8,
+            PorXmmXmmm128,
+            PandXmmXmmm128
+                                 ),
+    LOGICAL_D_SSE_XMM_INSTRUCTIONS(
             PslldXmmXmmm128,
             PslldXmmImm8,
+            PsrldXmmXmmm128,
+            PsrldXmmImm8
+                                  ),
+    LOGICAL_DQ_SSE_XMM_INSTRUCTIONS(
+            PslldqXmmImm8,
+            PsrldqXmmImm8
+                                   ),
+    LOGICAL_W_SSE_XMM_INSTRUCTIONS(
+            PsllwXmmXmmm128,
+            PsllwXmmImm8,
+            PsrlwXmmXmmm128,
+            PsrlwXmmImm8
+                                  ),
+    LOGICAL_Q_SSE_XMM_INSTRUCTIONS(
             PsllqXmmXmmm128,
             PsllqXmmImm8,
-            VpsllwXmmXmmXmmm128,
-            VpsllwXmmXmmImm8,
-            VpslldXmmXmmXmmm128,
-            VpslldXmmXmmImm8,
-            VpsllqXmmXmmXmmm128,
-            VpsllqXmmXmmImm8,
-            VpsllwYmmYmmXmmm128,
-            VpsllwYmmYmmImm8,
-            VpslldYmmYmmXmmm128,
-            VpslldYmmYmmImm8,
-            VpsllqYmmYmmXmmm128,
-            VpsllqYmmYmmImm8,
-            PsrldqXmmImm8,
-            VpsrldqXmmXmmImm8,
-            VpsrldqYmmYmmImm8,
-            PsrlwXmmXmmm128,
-            PsrlwXmmImm8,
-            PsrldXmmXmmm128,
-            PsrldXmmImm8,
             PsrlqXmmXmmm128,
-            PsrlqXmmImm8,
-            VpsrlwXmmXmmXmmm128,
-            VpsrlwXmmXmmImm8,
-            VpsrldXmmXmmXmmm128,
-            VpsrldXmmXmmImm8,
-            VpsrlqXmmXmmXmmm128,
-            VpsrlqXmmXmmImm8,
-            VpsrlwYmmYmmXmmm128,
-            VpsrlwYmmYmmImm8,
-            VpsrldYmmYmmXmmm128,
-            VpsrldYmmYmmImm8,
-            VpsrlqYmmYmmXmmm128,
-            VpsrlqYmmYmmImm8,
-            VpsllvqXmmXmmXmmm128,
-            VpsllvdYmmYmmYmmm256,
-            VpsllvqYmmYmmYmmm256,
-            VpsrlvdXmmXmmXmmm128,
-            VpsrlvqXmmXmmXmmm128,
-            VpsrlvdYmmYmmYmmm256,
-            VpsrlvqYmmYmmYmmm256,
-            PorXmmXmmm128,
-            VporXmmXmmXmmm128,
-            VporYmmYmmYmmm256
-                            ),
-
-
-    CMP_TEST_GP_INSTRUCTIONS(
-            CmpAlImm8,
-            CmpAxImm16,
-            CmpEaxImm32,
-            CmpRaxImm32,
-            CmpRm8Imm8,
-            CmpRm16Imm16,
-            CmpRm32Imm32,
-            CmpRm64Imm32,
-            CmpRm16Imm8,
-            CmpRm32Imm8,
-            CmpRm64Imm8,
-            CmpRm8R8,
-            CmpRm16R16,
-            CmpRm32R32,
-            CmpRm64R64,
-            CmpR8Rm8,
-            CmpR16Rm16,
-            CmpR32Rm32,
-            CmpR64Rm64,
-            TestAlImm8,
-            TestAxImm16,
-            TestEaxImm32,
-            TestRaxImm32,
-            TestRm8Imm8,
-            TestRm16Imm16,
-            TestRm32Imm32,
-            TestRm64Imm32,
-            TestRm8R8,
-            TestRm16R16,
-            TestRm32R32,
-            TestRm64R64
-                            ),
-
-
-    CMP_MM_INT_INSTRUCTIONS(
-            PcmpeqbMmMmm64,
-            PcmpeqwMmMmm64,
-            PcmpeqdMmMmm64,
-            PcmpgtbMmMmm64,
-            PcmpgtwMmMmm64,
-            PcmpgtdMmMmm64
-                           ),
-
-    CMP_XMM_INT_INSTRUCTIONS(
-            PcmpeqbXmmXmmm128,
-            PcmpeqwXmmXmmm128,
-            PcmpeqdXmmXmmm128,
-            VpcmpeqbXmmXmmXmmm128,
-            VpcmpeqwXmmXmmXmmm128,
-            VpcmpeqdXmmXmmXmmm128,
-            VpcmpeqbYmmYmmYmmm256,
-            VpcmpeqwYmmYmmYmmm256,
-            VpcmpeqdYmmYmmYmmm256,
-            PcmpeqqXmmXmmm128,
-            VpcmpeqqXmmXmmXmmm128,
-            VpcmpeqqYmmYmmYmmm256,
-
-            PcmpgtbXmmXmmm128,
-            PcmpgtwXmmXmmm128,
-            PcmpgtdXmmXmmm128,
-            VpcmpgtbXmmXmmXmmm128,
-            VpcmpgtwXmmXmmXmmm128,
-            VpcmpgtdXmmXmmXmmm128,
-            VpcmpgtbYmmYmmYmmm256,
-            VpcmpgtwYmmYmmYmmm256,
-            VpcmpgtdYmmYmmYmmm256,
-            PcmpgtqXmmXmmm128,
-            VpcmpgtqXmmXmmXmmm128,
-            VpcmpgtqYmmYmmYmmm256,
-
-            PcmpistriXmmXmmm128Imm8Rcx,
-            VpcmpistriXmmXmmm128Imm8Rcx,
-            PcmpistrmXmmXmmm128Imm8Xmm0,
-            VpcmpistrmXmmXmmm128Imm8Xmm0
-                            ),
-
-    CMP_XMM_INSTRUCTIONS(
-            PtestXmmXmmm128,
-            VptestXmmXmmm128,
-            VptestYmmYmmm256
-                        ),
-
-    CMP_XMM_GP_INSTRUCTIONS(
-            PcmpestriXmmXmmm128Imm8RaxRdxRcx,
-            VpcmpestriXmmXmmm128Imm8RaxRdxRcx,
-            PcmpestrmXmmXmmm128Imm8RaxRdxXmm0,
-            VpcmpestrmXmmXmmm128Imm8RaxRdxXmm0
-                           ),
-
-
-    CMP_XMM_FLOAT_INSTRUCTIONS(
-            CmppdXmmXmmm128Imm8,
-            VcmppdXmmXmmXmmm128Imm8,
-            VcmppdYmmYmmYmmm256Imm8,
-            CmppsXmmXmmm128Imm8,
-            VcmppsXmmXmmXmmm128Imm8,
-            VcmppsYmmYmmYmmm256Imm8,
-            CmpsdXmm0To63Xmmm64Imm8,
-            VcmpsdXmmXmmXmmm64Imm8,
-            CmpssXmm0To31Xmmm32Imm8,
-            VcmpssXmmXmmXmmm32Imm8,
-            ComisdXmmXmmm64,
-            VcomisdXmmXmmm64,
-            ComissXmmXmmm32,
-            VcomissXmmXmmm32,
-            UcomisdXmmXmmm64,
-            VucomisdXmmXmmm64,
-            UcomissXmmXmmm32,
-            VucomissXmmXmmm32,
-            VtestpsXmmXmmm128,
-            VtestpsYmmYmmm256,
-            VtestpdXmmXmmm128,
-            VtestpdYmmYmmm256
-
-
-                              ),
-
-    CONVERT_GP2GP_INSTRUCTIONS(
-            CbwAx,
-            CwdeEax,
-            CdqeRax,
-            CwdDxAx,
-            CdqEdxEax,
-            CqoRdxRax
-                              ),
-
-
-    CONVERT_XMM2XMM_INSTRUCTIONS(
-            Cvtdq2pdXmmXmmm64,
-            Vcvtdq2pdXmmXmmm64,
-            Vcvtdq2pdYmmXmmm128,
-            Cvtdq2psXmmXmmm128,
-            Vcvtdq2psXmmXmmm128,
-            Vcvtdq2psYmmYmmm256,
-            Cvtpd2dqXmmXmmm128,
-            Vcvtpd2dqXmmXmmm128,
-            Vcvtpd2dqXmmYmmm256,
-            Cvtpd2psXmmXmmm128,
-            Vcvtpd2psXmmXmmm128,
-            Vcvtpd2psXmmYmmm256,
-            Cvtps2dqXmmXmmm128,
-            Vcvtps2dqXmmXmmm128,
-            Vcvtps2dqYmmYmmm256,
-            Cvtps2pdXmmXmmm64,
-            Vcvtps2pdXmmXmmm64,
-            Vcvtps2pdYmmXmmm128,
-            Cvtsd2ssXmm0To31Xmmm64,
-            Vcvtsd2ssXmmXmmXmmm64,
-            Cvtss2sdXmm0To63Xmmm32,
-            Vcvtss2sdXmmXmmXmmm32,
-            Cvttpd2dqXmmXmmm128,
-            Vcvttpd2dqXmmXmmm128,
-            Vcvttpd2dqXmmYmmm256,
-            Cvttps2dqXmmXmmm128,
-            Vcvttps2dqXmmXmmm128,
-            Vcvttps2dqYmmYmmm256,
-            Vcvtph2psXmmXmmm64,
-            Vcvtph2psYmmXmmm128,
-            Vcvtps2phXmmm64XmmImm8,
-            Vcvtps2phXmmm128YmmImm8
-                                ),
-
-    CONVERT_XMM2MM_INSTRUCTIONS(
-            Cvtpi2pdXmmMmm64,
-            Cvtpi2psXmm0To63Mmm64,
-            Cvtps2piMmXmmm64,
-            Cvttpd2piMmXmmm128,
-            Cvttps2piMmXmmm64,
-            Cvtpd2piMmXmmm128
-                               ),
-
-    CONVERT_MM2GP_INSTRUCTIONS(
-            PextrwR32MmImm8,
-            PinsrwMmR32m16Imm8
-                              ),
-
-    CONVERT_XMM2GP_INSTRUCTIONS(
-            Cvtsd2siR32Xmmm64,
-            Cvtsd2siR64Xmmm64,
-            Vcvtsd2siR32Xmmm64,
-            Vcvtsd2siR64Xmmm64,
-
-            Cvtsi2sdXmm0To63Rm32,
-            Cvtsi2sdXmm0To63Rm64,
-            Vcvtsi2sdXmmXmmRm32,
-            Vcvtsi2sdXmmXmmRm64,
-            Cvtsi2ssXmm0To31Rm32,
-            Cvtsi2ssXmm0To31Rm64,
-            Vcvtsi2ssXmmXmmRm32,
-            Vcvtsi2ssXmmXmmRm64,
-
-            Cvtss2siR32Xmmm32,
-            Cvtss2siR64Xmmm32,
-            Vcvtss2siR32Xmmm32,
-            Vcvtss2siR64Xmmm32,
-            Cvttsd2siR32Xmmm64,
-            Cvttsd2siR64Xmmm64,
-            Vcvttsd2siR32Xmmm64,
-            Vcvttsd2siR64Xmmm64,
-            Cvttss2siR32Xmmm32,
-            Cvttss2siR64Xmmm32,
-            Vcvttss2siR32Xmmm32,
-            Vcvttss2siR64Xmmm32,
-
-            ExtractpsRm32XmmImm8,
-            VextractpsRm32XmmImm8,
-
-            PextrbR32m8XmmImm8,
-            PextrdRm32XmmImm8,
-            PextrqRm64XmmImm8,
-            VpextrbR32m8XmmImm8,
-            VpextrdRm32XmmImm8,
-            VpextrqRm64XmmImm8,
-            PextrwR32XmmImm8,
-            PextrwR32m16XmmImm8,
-            VpextrwR32XmmImm8,
-            VpextrwR32m16XmmImm8,
-
-
-            PinsrbXmmR32m8Imm8,
-            PinsrdXmmRm32Imm8,
-            PinsrqXmmRm64Imm8,
-            VpinsrbXmmXmmR32m8Imm8,
-            VpinsrdXmmXmmRm32Imm8,
-            VpinsrqXmmXmmRm64Imm8,
-            PinsrwXmmR32m16Imm8,
-            VpinsrwXmmXmmR32m16Imm8
-                               ),
-
-    ARITHMETIC_INT_MM_INSTRUCTIONS(
-            PaddbMmMmm64,
-            PaddwMmMmm64,
-            PaddsbMmMmm64,
-            PaddswMmMmm64,
-            PaddusbMmMmm64,
-            PadduswMmMmm64,
-            PsubbMmMmm64,
-            PsubwMmMmm64,
-            PsubdMmMmm64,
-            PsubqMmMmm64,
-            PsubsbMmMmm64,
-            PsubswMmMmm64,
-            PsubusbMmMmm64,
-            PsubuswMmMmm64,
-            PabsbMmMmm64,
-            PabswMmMmm64,
-            PabsdMmMmm64,
-            PhaddwMmMmm64,
-            PhadddMmMmm64,
-            PhaddswMmMmm64,
-            PhsubwMmMmm64,
-            PhsubdMmMmm64,
-            PhsubswMmMmm64,
-            PavgbMmMmm64,
-            PavgwMmMmm64,
-            PsignbMmMmm64,
-            PsignwMmMmm64,
-            PsigndMmMmm64,
-            PsrawMmMmm64,
-            PsrawMmImm8,
-            PsradMmMmm64,
-            PsradMmImm8,
-
-            PmaddubswMmMmm64,
-            PmaddwdMmMmm64,
-            PmaxswMmMmm64,
-            PmaxubMmMmm64,
-            PminswMmMmm64,
-            PminubMmMmm64,
-            PmulhrswMmMmm64,
-            PmulhuwMmMmm64,
-            PmulhwMmMmm64,
-            PmullwMmMmm64,
-            PmuludqMmMmm64,
-            PsadbwMmMmm64
+            PsrlqXmmImm8
                                   ),
 
-    ARITHMETIC_INT_XMM_INSTRUCTIONS(
-
-            MpsadbwXmmXmmm128Imm8,
-            VmpsadbwXmmXmmXmmm128Imm8,
-            VmpsadbwYmmYmmYmmm256Imm8,
-            PaddbXmmXmmm128,
-            PaddwXmmXmmm128,
-            PadddXmmXmmm128,
-            PaddqXmmXmmm128,
-            VpaddbXmmXmmXmmm128,
-            VpaddwXmmXmmXmmm128,
-            VpadddXmmXmmXmmm128,
-            VpaddqXmmXmmXmmm128,
-            VpaddbYmmYmmYmmm256,
-            VpaddwYmmYmmYmmm256,
-            VpadddYmmYmmYmmm256,
-            VpaddqYmmYmmYmmm256,
-            PaddsbXmmXmmm128,
-            PaddswXmmXmmm128,
-            VpaddsbXmmXmmXmmm128,
-            VpaddswXmmXmmXmmm128,
-            VpaddsbYmmYmmYmmm256,
-            VpaddswYmmYmmYmmm256,
-            PaddusbXmmXmmm128,
-
-            PadduswXmmXmmm128,
-            VpaddusbXmmXmmXmmm128,
-            VpadduswXmmXmmXmmm128,
-            VpaddusbYmmYmmYmmm256,
-            VpadduswYmmYmmYmmm256,
-
-            PmaddubswXmmXmmm128,
-            VpmaddubswXmmXmmXmmm128,
-            VpmaddubswYmmYmmYmmm256,
 
 
-            PmaddwdXmmXmmm128,
-            VpmaddwdXmmXmmXmmm128,
-            VpmaddwdYmmYmmYmmm256,
-            PmaxsbXmmXmmm128,
-            PmaxswXmmXmmm128,
-            PmaxsdXmmXmmm128,
-            VpmaxsbXmmXmmXmmm128,
-            VpmaxswXmmXmmXmmm128,
-            VpmaxsdXmmXmmXmmm128,
-            VpmaxsbYmmYmmYmmm256,
-            VpmaxswYmmYmmYmmm256,
-            VpmaxsdYmmYmmYmmm256,
-            PmaxubXmmXmmm128,
-            PmaxuwXmmXmmm128,
-            VpmaxubXmmXmmXmmm128,
-            VpmaxuwXmmXmmXmmm128,
-            VpmaxubYmmYmmYmmm256,
-            VpmaxuwYmmYmmYmmm256,
-            PmaxudXmmXmmm128,
-            VpmaxudXmmXmmXmmm128,
-            VpmaxudYmmYmmYmmm256,
-
-            PminsbXmmXmmm128,
-            PminswXmmXmmm128,
-            VpminsbXmmXmmXmmm128,
-            VpminswXmmXmmXmmm128,
-            VpminsbYmmYmmYmmm256,
-            VpminswYmmYmmYmmm256,
-            PminsdXmmXmmm128,
-            VpminsdXmmXmmXmmm128,
-            VpminsdYmmYmmYmmm256,
-            PminubXmmXmmm128,
-            PminuwXmmXmmm128,
-            VpminubXmmXmmXmmm128,
-            VpminuwXmmXmmXmmm128,
-            VpminubYmmYmmYmmm256,
-            VpminuwYmmYmmYmmm256,
-            PminudXmmXmmm128,
-            VpminudXmmXmmXmmm128,
-            VpminudYmmYmmYmmm256,
-            PmuldqXmmXmmm128,
-            VpmuldqXmmXmmXmmm128,
-            VpmuldqYmmYmmYmmm256,
-            PmulhrswXmmXmmm128,
-            VpmulhrswXmmXmmXmmm128,
-            VpmulhrswYmmYmmYmmm256,
-            PmulhuwXmmXmmm128,
-            VpmulhuwXmmXmmXmmm128,
-            VpmulhuwYmmYmmYmmm256,
-            PmulhwXmmXmmm128,
-            VpmulhwXmmXmmXmmm128,
-            VpmulhwYmmYmmYmmm256,
-            PmulldXmmXmmm128,
-            VpmulldXmmXmmXmmm128,
-            VpmulldYmmYmmYmmm256,
-            PmullwXmmXmmm128,
-            VpmullwXmmXmmXmmm128,
-            VpmullwYmmYmmYmmm256,
-            PmuludqXmmXmmm128,
-            VpmuludqXmmXmmXmmm128,
-            VpmuludqYmmYmmYmmm256,
-            PclmulqdqXmmXmmm128Imm8,
-            VpclmulqdqXmmXmmXmmm128Imm8,
-
-            PsadbwXmmXmmm128,
-            VpsadbwXmmXmmXmmm128,
-            VpsadbwYmmYmmYmmm256,
-
-            PsubbXmmXmmm128,
+    LOGICAL_PD_AVX_XMM_INSTRUCTIONS(
+            VandpdXmmXmmXmmm128,
+            VandnpdXmmXmmXmmm128,
+            VxorpdXmmXmmXmmm128,
+            VorpdXmmXmmXmmm128
+                                   ),
+    LOGICAL_PS_AVX_XMM_INSTRUCTIONS(
+            VandpsXmmXmmXmmm128,
+            VandnpsXmmXmmXmmm128,
+            VxorpsXmmXmmXmmm128,
+            VorpsXmmXmmXmmm128
+                                   ),
+    LOGICAL_AVX_XMM_INSTRUCTIONS(
+            VpxorXmmXmmXmmm128,
+            VpandnXmmXmmXmmm128,
+            VporXmmXmmXmmm128
+                                 ),
+    LOGICAL_D_AVX_XMM_INSTRUCTIONS(
+            VpandXmmXmmXmmm128,
+            VpslldXmmXmmXmmm128,
+            VpslldXmmXmmImm8,
+            VpsrldXmmXmmXmmm128,
+            VpsrldXmmXmmImm8,
+            VpsrlvdXmmXmmXmmm128
+                                  ),
+    LOGICAL_DQ_AVX_XMM_INSTRUCTIONS(
+            VpslldqXmmXmmImm8,
+            VpsrldqXmmXmmImm8
+                                   ),
+    LOGICAL_W_AVX_XMM_INSTRUCTIONS(
+            VpsllwXmmXmmXmmm128,
+            VpsllwXmmXmmImm8,
+            VpsrlwXmmXmmXmmm128,
+            VpsrlwXmmXmmImm8
+                                  ),
+    LOGICAL_Q_AVX_XMM_INSTRUCTIONS(
+            VpsllqXmmXmmXmmm128,
+            VpsllqXmmXmmImm8,
+            VpsrlqXmmXmmXmmm128,
+            VpsrlqXmmXmmImm8,
+            VpsllvqXmmXmmXmmm128,
+            VpsrlvqXmmXmmXmmm128
+                                  ),
 
 
-            PsubwXmmXmmm128,
-            PsubdXmmXmmm128,
-            VpsubbXmmXmmXmmm128,
-            VpsubwXmmXmmXmmm128,
-            VpsubdXmmXmmXmmm128,
-            VpsubbYmmYmmYmmm256,
-            VpsubwYmmYmmYmmm256,
-            VpsubdYmmYmmYmmm256,
-            PsubqXmmXmmm128,
-            VpsubqXmmXmmXmmm128,
-            VpsubqYmmYmmYmmm256,
-            PsubsbXmmXmmm128,
-            PsubswXmmXmmm128,
-            VpsubsbXmmXmmXmmm128,
-            VpsubswXmmXmmXmmm128,
-            VpsubsbYmmYmmYmmm256,
-            VpsubswYmmYmmYmmm256,
-            PsubusbXmmXmmm128,
-            PsubuswXmmXmmm128,
-            VpsubusbXmmXmmXmmm128,
-            VpsubuswXmmXmmXmmm128,
-            VpsubusbYmmYmmYmmm256,
-            VpsubuswYmmYmmYmmm256,
+    LOGICAL_PD_AVX_YMM_INSTRUCTIONS(
+            VandpdYmmYmmYmmm256,
+            VandnpdYmmYmmYmmm256,
+            VxorpdYmmYmmYmmm256,
+            VorpdYmmYmmYmmm256
+                                   ),
+    LOGICAL_PS_AVX_YMM_INSTRUCTIONS(
+            VandpsYmmYmmYmmm256,
+            VandnpsYmmYmmYmmm256,
+            VxorpsYmmYmmYmmm256,
+            VorpsYmmYmmYmmm256
+                                   ),
+    LOGICAL_AVX_YMM_INSTRUCTIONS(
+            VpxorYmmYmmYmmm256,
+            VpandnYmmYmmYmmm256,
+            VporYmmYmmYmmm256
+                                 ),
+    LOGICAL_D_AVX_YMM_INSTRUCTIONS(
+            VpandYmmYmmYmmm256,
+            VpslldYmmYmmXmmm128,
+            VpslldYmmYmmImm8,
+            VpsrldYmmYmmXmmm128,
+            VpsrldYmmYmmImm8,
+            VpsllvdYmmYmmYmmm256,
+            VpsrlvdYmmYmmYmmm256
+                                  ),
+    LOGICAL_DQ_AVX_YMM_INSTRUCTIONS(
+            VpslldqYmmYmmImm8,
+            VpsrldqYmmYmmImm8
+                                   ),
+    LOGICAL_W_AVX_YMM_INSTRUCTIONS(
+            VpsllwYmmYmmXmmm128,
+            VpsllwYmmYmmImm8,
+            VpsrlwYmmYmmXmmm128,
+            VpsrlwYmmYmmImm8
+                                  ),
+    LOGICAL_Q_AVX_YMM_INSTRUCTIONS(
+            VpsllqYmmYmmXmmm128,
+            VpsllqYmmYmmImm8,
+            VpsrlqYmmYmmXmmm128,
+            VpsrlqYmmYmmImm8,
+            VpsllvqYmmYmmYmmm256,
+            VpsrlvqYmmYmmYmmm256
+                                  ),
 
-            VpabsbXmmXmmm128,
-            VpabswXmmXmmm128,
-            VpabsdXmmXmmm128,
-            VpabsbYmmYmmm256,
-            VpabswYmmYmmm256,
-            VpabsdYmmYmmm256,
-
-            PabsbXmmXmmm128,
-            PabswXmmXmmm128,
-
-            PabsdXmmXmmm128,
-
-            PhaddwXmmXmmm128,
-            PhadddXmmXmmm128,
-            VphaddwXmmXmmXmmm128,
-            VphadddXmmXmmXmmm128,
-            VphaddwYmmYmmYmmm256,
-            VphadddYmmYmmYmmm256,
-            PhaddswXmmXmmm128,
-            VphaddswXmmXmmXmmm128,
-            VphaddswYmmYmmYmmm256,
-            PhminposuwXmmXmmm128,
-            VphminposuwXmmXmmm128,
-            PhsubwXmmXmmm128,
-            PhsubdXmmXmmm128,
-            VphsubwXmmXmmXmmm128,
-            VphsubdXmmXmmXmmm128,
-            VphsubwYmmYmmYmmm256,
-            VphsubdYmmYmmYmmm256,
-            PhsubswXmmXmmm128,
-            VphsubswXmmXmmXmmm128,
-            VphsubswYmmYmmYmmm256,
-
-
-            PavgbXmmXmmm128,
-            PavgwXmmXmmm128,
-            VpavgbXmmXmmXmmm128,
-            VpavgwXmmXmmXmmm128,
-            VpavgbYmmYmmYmmm256,
-            VpavgwYmmYmmYmmm256,
-
-            PsignbXmmXmmm128,
-            PsignwXmmXmmm128,
-            PsigndXmmXmmm128,
-            VpsignbXmmXmmXmmm128,
-            VpsignwXmmXmmXmmm128,
-            VpsigndXmmXmmXmmm128,
-            VpsignbYmmYmmYmmm256,
-            VpsignwYmmYmmYmmm256,
-            VpsigndYmmYmmYmmm256,
-
-            VpsravdXmmXmmXmmm128,
-            VpsravdYmmYmmYmmm256,
-
-            PsrawXmmXmmm128,
-            PsrawXmmImm8,
-            PsradXmmXmmm128,
-            PsradXmmImm8,
-            VpsrawXmmXmmXmmm128,
-            VpsrawXmmXmmImm8,
-            VpsradXmmXmmXmmm128,
-            VpsradXmmXmmImm8,
-            VpsrawYmmYmmXmmm128,
-            VpsrawYmmYmmImm8,
-            VpsradYmmYmmXmmm128,
-            VpsradYmmYmmImm8
+    COMPARE_B_MMX_INSTRUCTIONS(
+            PcmpeqbMmMmm64,
+            PcmpgtbMmMmm64
+                              ),
+    COMPARE_W_MMX_INSTRUCTIONS(
+            PcmpeqwMmMmm64,
+            PcmpgtwMmMmm64
+                              ),
+    COMPARE_D_MMX_INSTRUCTIONS(
+            PcmpeqdMmMmm64,
+            PcmpgtdMmMmm64
+                              ),
 
 
+    COMPARE_B_SSE_XMM_INSTRUCTIONS(
+            PcmpeqbXmmXmmm128,
+            PcmpgtbXmmXmmm128
+                                  ),
+    COMPARE_W_SSE_XMM_INSTRUCTIONS(
+            PcmpeqwXmmXmmm128,
+            PcmpgtwXmmXmmm128
+                                  ),
+    COMPARE_D_SSE_XMM_INSTRUCTIONS(
+            PcmpeqdXmmXmmm128,
+            PcmpgtdXmmXmmm128
+                                  ),
+    COMPARE_Q_SSE_XMM_INSTRUCTIONS(
+            PcmpeqqXmmXmmm128,
+            PcmpgtqXmmXmmm128
+                                  ),
+    COMPARE_SSE_XMM_INSTRUCTIONS(
+            PcmpistrmXmmXmmm128Imm8Xmm0,
+            PtestXmmXmmm128
+                                ),
+
+
+    COMPARE_B_AVX_XMM_INSTRUCTIONS(
+            VpcmpeqbXmmXmmXmmm128,
+            VpcmpgtbXmmXmmXmmm128
+                                  ),
+    COMPARE_W_AVX_XMM_INSTRUCTIONS(
+            VpcmpeqwXmmXmmXmmm128,
+            VpcmpgtwXmmXmmXmmm128
+                                  ),
+    COMPARE_D_AVX_XMM_INSTRUCTIONS(
+            VpcmpeqdXmmXmmXmmm128,
+            VpcmpgtdXmmXmmXmmm128
+                                  ),
+    COMPARE_Q_AVX_XMM_INSTRUCTIONS(
+            VpcmpeqqXmmXmmXmmm128,
+            VpcmpgtqXmmXmmXmmm128
+                                  ),
+    COMPARE_AVX_XMM_INSTRUCTIONS(
+            VpcmpistrmXmmXmmm128Imm8Xmm0,
+            VptestXmmXmmm128
+                                ),
+
+    COMPARE_B_AVX_YMM_INSTRUCTIONS(
+            VpcmpeqbYmmYmmYmmm256,
+            VpcmpgtbYmmYmmYmmm256
+                                  ),
+    COMPARE_W_AVX_YMM_INSTRUCTIONS(
+            VpcmpeqwYmmYmmYmmm256,
+            VpcmpgtwYmmYmmYmmm256
+                                  ),
+    COMPARE_D_AVX_YMM_INSTRUCTIONS(
+            VpcmpeqdYmmYmmYmmm256,
+            VpcmpgtdYmmYmmYmmm256
+                                  ),
+    COMPARE_Q_AVX_YMM_INSTRUCTIONS(
+            VpcmpeqqYmmYmmYmmm256,
+            VpcmpgtqYmmYmmYmmm256
+                                  ),
+
+
+    COMPARE_AVX_YMM_INSTRUCTIONS(
+            VptestYmmYmmm256
+                                ),
+
+    COMPARE_SSE_XMM_GP64_INSTRUCTIONS(
+            VpcmpestriXmmXmmm128Imm8RaxRdxRcx,
+            VpcmpestrmXmmXmmm128Imm8RaxRdxXmm0,
+            VpcmpistriXmmXmmm128Imm8Rcx
+                               ),
+
+
+    COMPARE_PD_SSE_XMM_INSTRUCTIONS(
+            CmppdXmmXmmm128Imm8
+                                   ),
+    COMPARE_PS_SSE_XMM_INSTRUCTIONS(
+            CmppsXmmXmmm128Imm8
+                                   ),
+    COMPARE_SD_SSE_XMM_INSTRUCTIONS(
+            CmpsdXmm0To63Xmmm64Imm8,
+            ComisdXmmXmmm64,
+            UcomisdXmmXmmm64
+                                   ),
+    COMPARE_SS_SSE_XMM_INSTRUCTIONS(
+            CmpssXmm0To31Xmmm32Imm8,
+            ComissXmmXmmm32,
+            UcomissXmmXmmm32
                                    ),
 
-    ARITHMETIC_FLOAT_XMM_INSTRUCTIONS(
+
+    COMPARE_PD_AVX_YMM_INSTRUCTIONS(
+            VcmppdYmmYmmYmmm256Imm8,
+            VtestpdYmmYmmm256
+                                   ),
+    COMPARE_PS_AVX_YMM_INSTRUCTIONS(
+            VcmppsYmmYmmYmmm256Imm8,
+            VtestpsYmmYmmm256
+                                   ),
+
+
+    COMPARE_PD_AVX_XMM_INSTRUCTIONS(
+            VcmppdXmmXmmXmmm128Imm8,
+            VtestpdXmmXmmm128
+                                   ),
+    COMPARE_PS_AVX_XMM_INSTRUCTIONS(
+            VcmppsXmmXmmXmmm128Imm8,
+            VtestpsXmmXmmm128
+                                   ),
+    COMPARE_SD_AVX_XMM_INSTRUCTIONS(
+            VcmpsdXmmXmmXmmm64Imm8,
+            VcomisdXmmXmmm64,
+            VucomisdXmmXmmm64
+                                   ),
+    COMPARE_SS_AVX_XMM_INSTRUCTIONS(
+            VcmpssXmmXmmXmmm32Imm8,
+            VcomissXmmXmmm32,
+            VucomissXmmXmmm32
+                                   ),
+
+
+    CONVERT_GP16_INSTRUCTIONS(
+            CwdDxAx
+                             ),
+
+    CONVERT_GP32_INSTRUCTIONS(
+            CdqEdxEax
+            ),
+
+    CONVERT_GP64_INSTRUCTIONS(
+            CqoRdxRax
+                             ),
+
+    CONVERT_GP8_GP16_INSTRUCTIONS(
+            CbwAx
+                                 ),
+
+    CONVERT_GP16_GP32_INSTRUCTIONS(
+            CwdeEax
+                                 ),
+
+    CONVERT_GP32_GP64_INSTRUCTIONS(
+            CdqeRax
+            ),
+
+
+    CONVERT_DQ2PD_SSE_XMM_INSTRUCTIONS(
+            Cvtdq2pdXmmXmmm64,
+            Cvtpd2dqXmmXmmm128,
+            Cvttpd2dqXmmXmmm128
+                                      ),
+
+    CONVERT_PS2PD_SSE_XMM_INSTRUCTIONS(
+            Cvtps2pdXmmXmmm64,
+            Cvtpd2psXmmXmmm128
+                                      ),
+
+
+    CONVERT_DQ2PS_SSE_XMM_INSTRUCTIONS(
+            Cvtdq2psXmmXmmm128,
+            Cvtps2dqXmmXmmm128,
+            Cvttps2dqXmmXmmm128
+                                      ),
+
+
+    CONVERT_SD2SS_SSE_XMM_INSTRUCTIONS(
+            Cvtsd2ssXmm0To31Xmmm64,
+            Cvtss2sdXmm0To63Xmmm32
+                                      ),
+
+
+    CONVERT_DQ2PD_AVX_XMM_INSTRUCTIONS(
+            Vcvtdq2pdXmmXmmm64,
+            Vcvtpd2dqXmmXmmm128,
+            Vcvtpd2dqXmmYmmm256,
+            Vcvttpd2dqXmmXmmm128,
+            Vcvttpd2dqXmmYmmm256
+                                      ),
+
+
+    CONVERT_PS2PD_AVX_XMM_INSTRUCTIONS(
+            Vcvtps2pdXmmXmmm64,
+            Vcvtpd2psXmmXmmm128,
+            Vcvtpd2psXmmYmmm256
+                                      ),
+
+    CONVERT_PS2PD_AVX_YMM_INSTRUCTIONS(
+            Vcvtps2pdYmmXmmm128
+                                      ),
+
+
+    CONVERT_DQ2PD_AVX_YMM_INSTRUCTIONS(
+            Vcvtdq2pdYmmXmmm128
+                                      ),
+
+
+
+    CONVERT_DQ_PS_AVX_XMM_INSTRUCTIONS(
+            Vcvtdq2psXmmXmmm128,
+            Vcvtps2dqXmmXmmm128,
+            Vcvttps2dqXmmXmmm128
+                                      ),
+
+
+    CONVERT_PH_PS_AVX_XMM_INSTRUCTIONS(
+            Vcvtph2psXmmXmmm64,
+            Vcvtps2phXmmm64XmmImm8,
+            Vcvtps2phXmmm128YmmImm8
+                                      ),
+
+
+
+    CONVERT_DQ_PS_AVX_YMM_INSTRUCTIONS(
+            Vcvtdq2psYmmYmmm256,
+            Vcvtph2psYmmXmmm128,
+            Vcvtps2dqYmmYmmm256,
+            Vcvttps2dqYmmYmmm256
+                                      ),
+
+
+    CONVERT_PH_PS_AVX_YMM_INSTRUCTIONS(
+            Vcvtdq2psYmmYmmm256,
+            Vcvtph2psYmmXmmm128
+                                      ),
+
+
+    CONVERT_SD_SS_AVX_XMM_INSTRUCTIONS(
+            Vcvtsd2ssXmmXmmXmmm64,
+            Vcvtss2sdXmmXmmXmmm32
+                                      ),
+
+
+    CONVERT_PI_PD_SSE_XMM_MM_INSTRUCTIONS(
+            Cvtpi2pdXmmMmm64,
+            Cvttpd2piMmXmmm128,
+            Cvtpd2piMmXmmm128
+                                         ),
+
+
+    CONVERT_PI_PS_SSE_XMM_MM_INSTRUCTIONS(
+            Cvtpi2psXmm0To63Mmm64,
+            Cvtps2piMmXmmm64,
+            Cvttps2piMmXmmm64
+                                         ),
+
+
+    CONVERT_SD_SI_SSE_XMM_GP32_INSTRUCTIONS(
+            Cvtsd2siR32Xmmm64,
+            Cvttsd2siR32Xmmm64,
+            Cvtsi2sdXmm0To63Rm32
+                                           ),
+
+
+
+    CONVERT_SD_SI_SSE_XMM_GP64_INSTRUCTIONS(
+            Cvtsd2siR64Xmmm64,
+            Cvttsd2siR64Xmmm64,
+            Cvtsi2sdXmm0To63Rm64
+                                           ),
+
+
+    CONVERT_SD_SI_AVX_XMM_GP32_INSTRUCTIONS(
+            Vcvtsd2siR32Xmmm64,
+            Vcvttsd2siR32Xmmm64,
+            Vcvtsi2sdXmmXmmRm32
+                                           ),
+
+
+    CONVERT_SD_SI_AVX_XMM_GP64_INSTRUCTIONS(
+            Vcvtsd2siR64Xmmm64,
+            Vcvttsd2siR64Xmmm64,
+            Vcvtsi2sdXmmXmmRm64
+                                           ),
+
+
+    CONVERT_SI_SS_SSE_XMM_GP32_INSTRUCTIONS(
+            Cvtsi2ssXmm0To31Rm32,
+            Cvtss2siR32Xmmm32,
+            Cvttss2siR32Xmmm32
+                                           ),
+
+
+    CONVERT_SI_SS_SSE_XMM_GP64_INSTRUCTIONS(
+            Cvtsi2ssXmm0To31Rm64,
+            Cvtss2siR64Xmmm32,
+            Cvttss2siR64Xmmm32
+
+                                           ),
+
+
+    CONVERT_SI_SS_AVX_XMM_GP32_INSTRUCTIONS(
+            Vcvtsi2ssXmmXmmRm32,
+            Vcvtss2siR32Xmmm32,
+            Vcvttss2siR32Xmmm32
+
+                                           ),
+
+
+    CONVERT_SI_SS_AVX_XMM_GP64_INSTRUCTIONS(
+            Vcvtsi2ssXmmXmmRm64,
+            Vcvtss2siR64Xmmm32,
+            Vcvttss2siR64Xmmm32
+                                           ),
+
+
+
+    EXTRACT_INSERT_GP32_MMX_INSTRUCTIONS(
+            PextrwR32MmImm8,
+            PinsrwMmR32m16Imm8
+                                        ),
+
+
+
+    EXTRACT_INSERT_SSE_XMM_GP32_INSTRUCTIONS(
+            ExtractpsRm32XmmImm8,
+            PextrdRm32XmmImm8
+                                     ),
+    EXTRACT_INSERT_AVX_XMM_GP32_INSTRUCTIONS(
+            VextractpsRm32XmmImm8,
+            VpextrdRm32XmmImm8
+                                     ),
+    EXTRACT_INSERT_B_SSE_XMM_GP32_INSTRUCTIONS(
+            PextrbR32m8XmmImm8,
+            PinsrbXmmR32m8Imm8
+                                       ),
+    EXTRACT_INSERT_SSE_XMM_GP64_INSTRUCTIONS(
+            PextrqRm64XmmImm8
+                                     ),
+    EXTRACT_INSERT_B_AVX_XMM_GP32_INSTRUCTIONS(
+            VpextrbR32m8XmmImm8,
+            VpinsrbXmmXmmR32m8Imm8
+                                       ),
+    EXTRACT_INSERT_AVX_XMM_GP64_INSTRUCTIONS(
+            VpextrqRm64XmmImm8
+                                     ),
+    EXTRACT_INSERT_W_SSE_XMM_GP32_INSTRUCTIONS(
+            PextrwR32XmmImm8,
+            PextrwR32m16XmmImm8,
+            PinsrwXmmR32m16Imm8
+                                       ),
+    EXTRACT_INSERT_W_AVX_XMM_GP32_INSTRUCTIONS(
+            VpextrwR32XmmImm8,
+            VpextrwR32m16XmmImm8,
+            VpinsrwXmmXmmR32m16Imm8
+                                       ),
+    EXTRACT_INSERT_D_SSE_XMM_GP32_INSTRUCTIONS(
+            PinsrdXmmRm32Imm8
+                                       ),
+    EXTRACT_INSERT_Q_SSE_XMM_GP64_INSTRUCTIONS(
+            PinsrqXmmRm64Imm8
+                                       ),
+    EXTRACT_INSERT_D_AVX_XMM_GP32_INSTRUCTIONS(
+            VpinsrdXmmXmmRm32Imm8
+                                       ),
+    EXTRACT_INSERT_Q_AVX_XMM_GP64_INSTRUCTIONS(
+            VpinsrqXmmXmmRm64Imm8
+                                       ),
+
+
+    ARITHMETIC_B_MMX_INSTRUCTIONS(
+            PaddbMmMmm64,
+            PsubbMmMmm64,
+            PavgbMmMmm64,
+            PsignbMmMmm64,
+            PmaxubMmMmm64,
+            PminubMmMmm64
+                                     ),
+    ARITHMETIC_W_MMX_INSTRUCTIONS(
+            PaddwMmMmm64,
+            PhaddwMmMmm64,
+            PavgwMmMmm64,
+            PsignwMmMmm64,
+            PsrawMmMmm64,
+            PsrawMmImm8,
+            PmulhuwMmMmm64,
+            PmulhwMmMmm64,
+            PmullwMmMmm64
+                                     ),
+    ARITHMETIC_SB_MMX_INSTRUCTIONS(
+            PaddsbMmMmm64,
+            PaddusbMmMmm64,
+            PsubsbMmMmm64,
+            PsubusbMmMmm64,
+            PabsbMmMmm64
+                                      ),
+    ARITHMETIC_SW_MMX_INSTRUCTIONS(
+            PaddswMmMmm64,
+            PadduswMmMmm64,
+            PsubswMmMmm64,
+            PsubuswMmMmm64,
+            PabswMmMmm64,
+            PhaddswMmMmm64,
+            PhsubswMmMmm64,
+            PmaddubswMmMmm64,
+            PmaxswMmMmm64,
+            PminswMmMmm64,
+            PmulhrswMmMmm64
+                                      ),
+    ARITHMETIC_BW_MMX_INSTRUCTIONS(
+            PsubwMmMmm64,
+            PhsubwMmMmm64,
+            PsadbwMmMmm64
+                                      ),
+    ARITHMETIC_D_MMX_INSTRUCTIONS(
+            PsubdMmMmm64,
+            PhadddMmMmm64,
+            PhsubdMmMmm64,
+            PsigndMmMmm64,
+            PsradMmMmm64,
+            PsradMmImm8
+                                     ),
+    ARITHMETIC_Q_MMX_INSTRUCTIONS(
+            PsubqMmMmm64
+                                     ),
+    ARITHMETIC_SD_MMX_INSTRUCTIONS(
+            PabsdMmMmm64
+                                      ),
+    ARITHMETIC_WD_MMX_INSTRUCTIONS(
+            PmaddwdMmMmm64
+                                      ),
+    ARITHMETIC_DQ_MMX_INSTRUCTIONS(
+            PmuludqMmMmm64
+                                      ),
+
+
+    ARITHMETIC_BW_SSE_XMM_INSTRUCTIONS(
+            MpsadbwXmmXmmm128Imm8,
+            PsadbwXmmXmmm128,
+            PsubwXmmXmmm128,
+            PhsubwXmmXmmm128
+                                          ),
+    ARITHMETIC_BW_AVX_XMM_INSTRUCTIONS(
+            VmpsadbwXmmXmmXmmm128Imm8,
+            VpsadbwXmmXmmXmmm128,
+            VpsubwXmmXmmXmmm128,
+            VphsubwXmmXmmXmmm128
+                                          ),
+    ARITHMETIC_BW_AVX_YMM_INSTRUCTIONS(
+            VmpsadbwYmmYmmYmmm256Imm8,
+            VpsadbwYmmYmmYmmm256,
+            VpsubwYmmYmmYmmm256,
+            VphsubwYmmYmmYmmm256
+                                          ),
+    ARITHMETIC_B_SSE_XMM_INSTRUCTIONS(
+            PaddbXmmXmmm128,
+            PmaxubXmmXmmm128,
+            PminubXmmXmmm128,
+            PsubbXmmXmmm128,
+            PavgbXmmXmmm128,
+            PsignbXmmXmmm128
+                                         ),
+    ARITHMETIC_W_SSE_XMM_INSTRUCTIONS(
+            PaddwXmmXmmm128,
+            PmaxuwXmmXmmm128,
+            PminuwXmmXmmm128,
+            PmulhuwXmmXmmm128,
+            PmulhwXmmXmmm128,
+            PmullwXmmXmmm128,
+            PhaddwXmmXmmm128,
+            PhminposuwXmmXmmm128,
+            PavgwXmmXmmm128,
+            PsignwXmmXmmm128,
+            PsrawXmmXmmm128,
+            PsrawXmmImm8
+                                         ),
+    ARITHMETIC_D_SSE_XMM_INSTRUCTIONS(
+            PadddXmmXmmm128,
+            PmaxudXmmXmmm128,
+            PminudXmmXmmm128,
+            PmulldXmmXmmm128,
+            PsubdXmmXmmm128,
+            PhadddXmmXmmm128,
+            PhsubdXmmXmmm128,
+            PsigndXmmXmmm128,
+            PsradXmmXmmm128,
+            PsradXmmImm8
+                                         ),
+    ARITHMETIC_DQ_SSE_XMM_INSTRUCTIONS(
+            PaddqXmmXmmm128,
+            PmuldqXmmXmmm128,
+            PmuludqXmmXmmm128,
+            PclmulqdqXmmXmmm128Imm8
+                                          ),
+    ARITHMETIC_B_AVX_XMM_INSTRUCTIONS(
+            VpaddbXmmXmmXmmm128,
+            VpmaxubXmmXmmXmmm128,
+            VpminubXmmXmmXmmm128,
+            VpsubbXmmXmmXmmm128,
+            VpavgbXmmXmmXmmm128,
+            VpsignbXmmXmmXmmm128
+                                         ),
+    ARITHMETIC_W_AVX_XMM_INSTRUCTIONS(
+            VpaddwXmmXmmXmmm128,
+            VpmaxuwXmmXmmXmmm128,
+            VpminuwXmmXmmXmmm128,
+            VpmulhuwXmmXmmXmmm128,
+            VpmulhwXmmXmmXmmm128,
+            VpmullwXmmXmmXmmm128,
+            VphaddwXmmXmmXmmm128,
+            VphminposuwXmmXmmm128,
+            VpavgwXmmXmmXmmm128,
+            VpsignwXmmXmmXmmm128,
+            VpsrawXmmXmmXmmm128,
+            VpsrawXmmXmmImm8
+                                         ),
+    ARITHMETIC_D_AVX_XMM_INSTRUCTIONS(
+            VpadddXmmXmmXmmm128,
+            VpmaxudXmmXmmXmmm128,
+            VpminudXmmXmmXmmm128,
+            VpmulldXmmXmmXmmm128,
+            VpsubdXmmXmmXmmm128,
+            VphadddXmmXmmXmmm128,
+            VphsubdXmmXmmXmmm128,
+            VpsigndXmmXmmXmmm128,
+            VpsravdXmmXmmXmmm128,
+            VpsradXmmXmmXmmm128,
+            VpsradXmmXmmImm8
+                                         ),
+    ARITHMETIC_DQ_AVX_XMM_INSTRUCTIONS(
+            VpaddqXmmXmmXmmm128,
+            VpmuldqXmmXmmXmmm128,
+            VpmuludqXmmXmmXmmm128,
+            VpclmulqdqXmmXmmXmmm128Imm8
+                                          ),
+    ARITHMETIC_B_AVX_YMM_INSTRUCTIONS(
+            VpaddbYmmYmmYmmm256,
+            VpmaxubYmmYmmYmmm256,
+            VpminubYmmYmmYmmm256,
+            VpsubbYmmYmmYmmm256,
+            VpavgbYmmYmmYmmm256,
+            VpsignbYmmYmmYmmm256
+                                         ),
+    ARITHMETIC_W_AVX_YMM_INSTRUCTIONS(
+            VpaddwYmmYmmYmmm256,
+            VpmaxuwYmmYmmYmmm256,
+            VpminuwYmmYmmYmmm256,
+            VpmulhuwYmmYmmYmmm256,
+            VpmulhwYmmYmmYmmm256,
+            VpmullwYmmYmmYmmm256,
+            VphaddwYmmYmmYmmm256,
+            VpavgwYmmYmmYmmm256,
+            VpsignwYmmYmmYmmm256,
+            VpsrawYmmYmmXmmm128,
+            VpsrawYmmYmmImm8
+                                         ),
+    ARITHMETIC_D_AVX_YMM_INSTRUCTIONS(
+            VpadddYmmYmmYmmm256,
+            VpmaxudYmmYmmYmmm256,
+            VpminudYmmYmmYmmm256,
+            VpmulldYmmYmmYmmm256,
+            VpsubdYmmYmmYmmm256,
+            VphadddYmmYmmYmmm256,
+            VphsubdYmmYmmYmmm256,
+            VpsigndYmmYmmYmmm256,
+            VpsravdYmmYmmYmmm256,
+            VpsradYmmYmmXmmm128,
+            VpsradYmmYmmImm8
+                                         ),
+    ARITHMETIC_DQ_AVX_YMM_INSTRUCTIONS(
+            VpaddqYmmYmmYmmm256,
+            VpmuldqYmmYmmYmmm256,
+            VpmuludqYmmYmmYmmm256
+                                          ),
+    ARITHMETIC_SB_SSE_XMM_INSTRUCTIONS(
+            PaddsbXmmXmmm128,
+            PaddusbXmmXmmm128,
+            PmaxsbXmmXmmm128,
+            PminsbXmmXmmm128,
+            PsubsbXmmXmmm128,
+            PsubusbXmmXmmm128,
+            PabsbXmmXmmm128
+                                          ),
+    ARITHMETIC_SW_SSE_XMM_INSTRUCTIONS(
+            PaddswXmmXmmm128,
+            PadduswXmmXmmm128,
+            PmaddubswXmmXmmm128,
+            PmaxswXmmXmmm128,
+            PminswXmmXmmm128,
+            PmulhrswXmmXmmm128,
+            PsubswXmmXmmm128,
+            PsubuswXmmXmmm128,
+            PabswXmmXmmm128,
+            PhaddswXmmXmmm128,
+            PhsubswXmmXmmm128
+                                          ),
+    ARITHMETIC_SB_AVX_XMM_INSTRUCTIONS(
+            VpaddsbXmmXmmXmmm128,
+            VpaddusbXmmXmmXmmm128,
+            VpmaxsbXmmXmmXmmm128,
+            VpminsbXmmXmmXmmm128,
+            VpsubsbXmmXmmXmmm128,
+            VpsubusbXmmXmmXmmm128,
+            VpabsbXmmXmmm128
+                                          ),
+    ARITHMETIC_SW_AVX_XMM_INSTRUCTIONS(
+            VpaddswXmmXmmXmmm128,
+            VpadduswXmmXmmXmmm128,
+            VpmaddubswXmmXmmXmmm128,
+            VpmaxswXmmXmmXmmm128,
+            VpminswXmmXmmXmmm128,
+            VpmulhrswXmmXmmXmmm128,
+            VpsubswXmmXmmXmmm128,
+            VpsubuswXmmXmmXmmm128,
+            VpabswXmmXmmm128,
+            VphaddswXmmXmmXmmm128,
+            VphsubswXmmXmmXmmm128
+                                          ),
+    ARITHMETIC_SB_AVX_YMM_INSTRUCTIONS(
+            VpaddsbYmmYmmYmmm256,
+            VpaddusbYmmYmmYmmm256,
+            VpmaxsbYmmYmmYmmm256,
+            VpminsbYmmYmmYmmm256,
+            VpsubsbYmmYmmYmmm256,
+            VpsubusbYmmYmmYmmm256,
+            VpabsbYmmYmmm256
+                                          ),
+    ARITHMETIC_SW_AVX_YMM_INSTRUCTIONS(
+            VpaddswYmmYmmYmmm256,
+            VpadduswYmmYmmYmmm256,
+            VpmaddubswYmmYmmYmmm256,
+            VpmaxswYmmYmmYmmm256,
+            VpminswYmmYmmYmmm256,
+            VpmulhrswYmmYmmYmmm256,
+            VpsubswYmmYmmYmmm256,
+            VpsubuswYmmYmmYmmm256,
+            VpabswYmmYmmm256,
+            VphaddswYmmYmmYmmm256,
+            VphsubswYmmYmmYmmm256
+                                          ),
+    ARITHMETIC_WD_SSE_XMM_INSTRUCTIONS(
+            PmaddwdXmmXmmm128
+                                          ),
+    ARITHMETIC_WD_AVX_XMM_INSTRUCTIONS(
+            VpmaddwdXmmXmmXmmm128
+                                          ),
+    ARITHMETIC_WD_AVX_YMM_INSTRUCTIONS(
+            VpmaddwdYmmYmmYmmm256
+                                          ),
+    ARITHMETIC_SD_AVX_YMM_INSTRUCTIONS(
+            VpmaxsdYmmYmmYmmm256,
+            VpminsdYmmYmmYmmm256,
+            VpabsdYmmYmmm256
+                                          ),
+    ARITHMETIC_Q_SSE_XMM_INSTRUCTIONS(
+            PsubqXmmXmmm128
+                                         ),
+    ARITHMETIC_Q_AVX_XMM_INSTRUCTIONS(
+            VpsubqXmmXmmXmmm128
+                                         ),
+    ARITHMETIC_Q_AVX_YMM_INSTRUCTIONS(
+            VpsubqYmmYmmYmmm256
+                                         ),
+
+
+
+    ARITHMETIC_PD_SSE_XMM_INSTRUCTIONS(
             AddpdXmmXmmm128,
-            VaddpdXmmXmmXmmm128,
-            VaddpdYmmYmmYmmm256,
-            AddpsXmmXmmm128,
-            VaddpsXmmXmmXmmm128,
-            VaddpsYmmYmmYmmm256,
-            AddsdXmm0To63Xmmm64,
-            VaddsdXmmXmmXmmm64,
-            AddssXmm0To31Xmmm32,
-            VaddssXmmXmmXmmm32,
             AddsubpdXmmXmmm128,
-            VaddsubpdXmmXmmXmmm128,
-            VaddsubpdYmmYmmYmmm256,
+            SubpdXmmXmmm128,
+            DivpdXmmXmmm128,
+            SqrtpdXmmXmmm128,
+            RoundpdXmmXmmm128Imm8,
+            MaxpdXmmXmmm128,
+            MinpdXmmXmmm128,
+            DppdXmmXmmm128Imm8,
+            HaddpdXmmXmmm128,
+            HsubpdXmmXmmm128,
+            MulpdXmmXmmm128
+                                      ),
+    ARITHMETIC_PS_SSE_XMM_INSTRUCTIONS(
+            AddpsXmmXmmm128,
             AddsubpsXmmXmmm128,
-            VaddsubpsXmmXmmXmmm128,
-            VaddsubpsYmmYmmYmmm256,
+            SubpsXmmXmmm128,
+            DivpsXmmXmmm128,
+            SqrtpsXmmXmmm128,
+            RoundpsXmmXmmm128Imm8,
+            RsqrtpsXmmXmmm128,
+            MaxpsXmmXmmm128,
+            MinpsXmmXmmm128,
+            DppsXmmXmmm128Imm8,
+            HaddpsXmmXmmm128,
+            HsubpsXmmXmmm128,
+            MulpsXmmXmmm128,
+            RcppsXmmXmmm128
+                                      ),
+
+
+    ARITHMETIC_SD_SSE_XMM_INSTRUCTIONS(
+            PmaxsdXmmXmmm128,
+            PminsdXmmXmmm128,
+            PabsdXmmXmmm128,
+            AddsdXmm0To63Xmmm64,
+            SubsdXmm0To63Xmmm64,
+            DivsdXmm0To63Xmmm64,
+            SqrtsdXmm0To63Xmmm64,
+            RoundsdXmm0To63Xmmm64Imm8,
+            MaxsdXmm0To63Xmmm64,
+            MinsdXmm0To63Xmmm64,
+            MulsdXmm0To63Xmmm64
+                                      ),
+    ARITHMETIC_SS_SSE_XMM_INSTRUCTIONS(
+            AddssXmm0To31Xmmm32,
+            SubssXmm0To31Xmmm32,
+            DivssXmm0To31Xmmm32,
+            SqrtssXmm0To31Xmmm32,
+            RoundssXmm0To31Xmmm32Imm8,
+            RsqrtssXmm0To31Xmmm32,
+            MaxssXmm0To31Xmmm32,
+            MinssXmm0To31Xmmm32,
+            MulssXmm0To31Xmmm32,
+            RcpssXmm0To31Xmmm32
+                                      ),
+
+
+
+    ARITHMETIC_PD_AVX_XMM_INSTRUCTIONS(
+            VaddpdXmmXmmXmmm128,
+            VaddsubpdXmmXmmXmmm128,
             Vfmadd132pdXmmXmmXmmm128,
             Vfmadd213pdXmmXmmXmmm128,
             Vfmadd231pdXmmXmmXmmm128,
-            Vfmadd132pdYmmYmmYmmm256,
-            Vfmadd213pdYmmYmmYmmm256,
-            Vfmadd231pdYmmYmmYmmm256,
-            Vfmadd132psXmmXmmXmmm128,
-            Vfmadd213psXmmXmmXmmm128,
-            Vfmadd231psXmmXmmXmmm128,
-            Vfmadd132psYmmYmmYmmm256,
-            Vfmadd213psYmmYmmYmmm256,
-            Vfmadd231psYmmYmmYmmm256,
-            Vfmadd132sdXmmXmmXmmm64,
-            Vfmadd213sdXmmXmmXmmm64,
-            Vfmadd231sdXmmXmmXmmm64,
-            Vfmadd132ssXmmXmmXmmm32,
-            Vfmadd213ssXmmXmmXmmm32,
-            Vfmadd231ssXmmXmmXmmm32,
             Vfmaddsub132pdXmmXmmXmmm128,
             Vfmaddsub213pdXmmXmmXmmm128,
             Vfmaddsub231pdXmmXmmXmmm128,
-            Vfmaddsub132pdYmmYmmYmmm256,
-            Vfmaddsub213pdYmmYmmYmmm256,
-            Vfmaddsub231pdYmmYmmYmmm256,
-            Vfmaddsub132psXmmXmmXmmm128,
-            Vfmaddsub213psXmmXmmXmmm128,
-            Vfmaddsub231psXmmXmmXmmm128,
-            Vfmaddsub132psYmmYmmYmmm256,
-            Vfmaddsub213psYmmYmmYmmm256,
-            Vfmaddsub231psYmmYmmYmmm256,
             Vfmsubadd132pdXmmXmmXmmm128,
             Vfmsubadd213pdXmmXmmXmmm128,
             Vfmsubadd231pdXmmXmmXmmm128,
-            Vfmsubadd132pdYmmYmmYmmm256,
-            Vfmsubadd213pdYmmYmmYmmm256,
-            Vfmsubadd231pdYmmYmmYmmm256,
-            Vfmsubadd132psXmmXmmXmmm128,
-            Vfmsubadd213psXmmXmmXmmm128,
-            Vfmsubadd231psXmmXmmXmmm128,
-            Vfmsubadd132psYmmYmmYmmm256,
-            Vfmsubadd213psYmmYmmYmmm256,
-            Vfmsubadd231psYmmYmmYmmm256,
             Vfmsub132pdXmmXmmXmmm128,
             Vfmsub213pdXmmXmmXmmm128,
             Vfmsub231pdXmmXmmXmmm128,
-            Vfmsub132pdYmmYmmYmmm256,
-            Vfmsub213pdYmmYmmYmmm256,
-            Vfmsub231pdYmmYmmYmmm256,
-            Vfmsub132psXmmXmmXmmm128,
-            Vfmsub213psXmmXmmXmmm128,
-            Vfmsub231psXmmXmmXmmm128,
-            Vfmsub132psYmmYmmYmmm256,
-            Vfmsub213psYmmYmmYmmm256,
-            Vfmsub231psYmmYmmYmmm256,
-            Vfmsub132sdXmmXmmXmmm64,
-            Vfmsub213sdXmmXmmXmmm64,
-            Vfmsub231sdXmmXmmXmmm64,
-            Vfmsub132ssXmmXmmXmmm32,
-            Vfmsub213ssXmmXmmXmmm32,
-            Vfmsub231ssXmmXmmXmmm32,
             Vfnmadd132pdXmmXmmXmmm128,
             Vfnmadd213pdXmmXmmXmmm128,
             Vfnmadd231pdXmmXmmXmmm128,
-            Vfnmadd132pdYmmYmmYmmm256,
-            Vfnmadd213pdYmmYmmYmmm256,
-            Vfnmadd231pdYmmYmmYmmm256,
-            Vfnmadd132psXmmXmmXmmm128,
-            Vfnmadd213psXmmXmmXmmm128,
-            Vfnmadd231psXmmXmmXmmm128,
-            Vfnmadd132psYmmYmmYmmm256,
-            Vfnmadd213psYmmYmmYmmm256,
-            Vfnmadd231psYmmYmmYmmm256,
-            Vfnmadd132sdXmmXmmXmmm64,
-            Vfnmadd213sdXmmXmmXmmm64,
-            Vfnmadd231sdXmmXmmXmmm64,
-            Vfnmadd132ssXmmXmmXmmm32,
-            Vfnmadd213ssXmmXmmXmmm32,
-            Vfnmadd231ssXmmXmmXmmm32,
             Vfnmsub132pdXmmXmmXmmm128,
             Vfnmsub213pdXmmXmmXmmm128,
             Vfnmsub231pdXmmXmmXmmm128,
-            Vfnmsub132pdYmmYmmYmmm256,
-            Vfnmsub213pdYmmYmmYmmm256,
-            Vfnmsub231pdYmmYmmYmmm256,
+            VsubpdXmmXmmXmmm128,
+            VdivpdXmmXmmXmmm128,
+            VsqrtpdXmmXmmm128,
+            VroundpdXmmXmmm128Imm8,
+            VmaxpdXmmXmmXmmm128,
+            VminpdXmmXmmXmmm128,
+            VdppdXmmXmmXmmm128Imm8,
+            VhaddpdXmmXmmXmmm128,
+            VhsubpdXmmXmmXmmm128,
+            VmulpdXmmXmmXmmm128
+                                      ),
+    ARITHMETIC_PS_AVX_XMM_INSTRUCTIONS(
+            VaddpsXmmXmmXmmm128,
+            VaddsubpsXmmXmmXmmm128,
+            Vfmadd132psXmmXmmXmmm128,
+            Vfmadd213psXmmXmmXmmm128,
+            Vfmadd231psXmmXmmXmmm128,
+            Vfmaddsub132psXmmXmmXmmm128,
+            Vfmaddsub213psXmmXmmXmmm128,
+            Vfmaddsub231psXmmXmmXmmm128,
+            Vfmsubadd132psXmmXmmXmmm128,
+            Vfmsubadd213psXmmXmmXmmm128,
+            Vfmsubadd231psXmmXmmXmmm128,
+            Vfmsub132psXmmXmmXmmm128,
+            Vfmsub213psXmmXmmXmmm128,
+            Vfmsub231psXmmXmmXmmm128,
+            Vfnmadd132psXmmXmmXmmm128,
+            Vfnmadd213psXmmXmmXmmm128,
+            Vfnmadd231psXmmXmmXmmm128,
             Vfnmsub132psXmmXmmXmmm128,
             Vfnmsub213psXmmXmmXmmm128,
             Vfnmsub231psXmmXmmXmmm128,
-            Vfnmsub132psYmmYmmYmmm256,
-            Vfnmsub213psYmmYmmYmmm256,
-            Vfnmsub231psYmmYmmYmmm256,
+            VsubpsXmmXmmXmmm128,
+            VdivpsXmmXmmXmmm128,
+            VsqrtpsXmmXmmm128,
+            VroundpsXmmXmmm128Imm8,
+            VrsqrtpsXmmXmmm128,
+            VmaxpsXmmXmmXmmm128,
+            VminpsXmmXmmXmmm128,
+            VdppsXmmXmmXmmm128Imm8,
+            VhaddpsXmmXmmXmmm128,
+            VhsubpsXmmXmmXmmm128,
+            VmulpsXmmXmmXmmm128,
+            VrcppsXmmXmmm128
+                                      ),
+
+    ARITHMETIC_SD_AVX_XMM_INSTRUCTIONS(
+            VpmaxsdXmmXmmXmmm128,
+            VpminsdXmmXmmXmmm128,
+            VpabsdXmmXmmm128,
+            VaddsdXmmXmmXmmm64,
+            Vfmadd132sdXmmXmmXmmm64,
+            Vfmadd213sdXmmXmmXmmm64,
+            Vfmadd231sdXmmXmmXmmm64,
+            Vfmsub132sdXmmXmmXmmm64,
+            Vfmsub213sdXmmXmmXmmm64,
+            Vfmsub231sdXmmXmmXmmm64,
+            Vfnmadd132sdXmmXmmXmmm64,
+            Vfnmadd213sdXmmXmmXmmm64,
+            Vfnmadd231sdXmmXmmXmmm64,
             Vfnmsub132sdXmmXmmXmmm64,
             Vfnmsub213sdXmmXmmXmmm64,
             Vfnmsub231sdXmmXmmXmmm64,
+            VsubsdXmmXmmXmmm64,
+            VdivsdXmmXmmXmmm64,
+            VsqrtsdXmmXmmXmmm64,
+            VroundsdXmmXmmXmmm64Imm8,
+            VmaxsdXmmXmmXmmm64,
+            VminsdXmmXmmXmmm64,
+            VmulsdXmmXmmXmmm64
+                                      ),
+    ARITHMETIC_SS_AVX_XMM_INSTRUCTIONS(
+            VaddssXmmXmmXmmm32,
+            Vfmadd132ssXmmXmmXmmm32,
+            Vfmadd213ssXmmXmmXmmm32,
+            Vfmadd231ssXmmXmmXmmm32,
+            Vfmsub132ssXmmXmmXmmm32,
+            Vfmsub213ssXmmXmmXmmm32,
+            Vfmsub231ssXmmXmmXmmm32,
+            Vfnmadd132ssXmmXmmXmmm32,
+            Vfnmadd213ssXmmXmmXmmm32,
+            Vfnmadd231ssXmmXmmXmmm32,
             Vfnmsub132ssXmmXmmXmmm32,
             Vfnmsub213ssXmmXmmXmmm32,
             Vfnmsub231ssXmmXmmXmmm32,
-            SubpdXmmXmmm128,
-            VsubpdXmmXmmXmmm128,
-            VsubpdYmmYmmYmmm256,
-            SubpsXmmXmmm128,
-            VsubpsXmmXmmXmmm128,
-            VsubpsYmmYmmYmmm256,
-            SubsdXmm0To63Xmmm64,
-            VsubsdXmmXmmXmmm64,
-            SubssXmm0To31Xmmm32,
             VsubssXmmXmmXmmm32,
-            DivpdXmmXmmm128,
-            VdivpdXmmXmmXmmm128,
-            VdivpdYmmYmmYmmm256,
-            DivpsXmmXmmm128,
-            VdivpsXmmXmmXmmm128,
-            VdivpsYmmYmmYmmm256,
-            DivsdXmm0To63Xmmm64,
-            VdivsdXmmXmmXmmm64,
-            DivssXmm0To31Xmmm32,
             VdivssXmmXmmXmmm32,
-            SqrtpdXmmXmmm128,
-            VsqrtpdXmmXmmm128,
-            VsqrtpdYmmYmmm256,
-            SqrtpsXmmXmmm128,
-            VsqrtpsXmmXmmm128,
-            VsqrtpsYmmYmmm256,
-            SqrtsdXmm0To63Xmmm64,
-            VsqrtsdXmmXmmXmmm64,
-            SqrtssXmm0To31Xmmm32,
             VsqrtssXmmXmmXmmm32,
-
-            RoundpdXmmXmmm128Imm8,
-            VroundpdXmmXmmm128Imm8,
-            VroundpdYmmYmmm256Imm8,
-            RoundpsXmmXmmm128Imm8,
-            VroundpsXmmXmmm128Imm8,
-            VroundpsYmmYmmm256Imm8,
-            RoundsdXmm0To63Xmmm64Imm8,
-            VroundsdXmmXmmXmmm64Imm8,
-            RoundssXmm0To31Xmmm32Imm8,
             VroundssXmmXmmXmmm32Imm8,
-            RsqrtpsXmmXmmm128,
-            VrsqrtpsXmmXmmm128,
-            VrsqrtpsYmmYmmm256,
-            RsqrtssXmm0To31Xmmm32,
             VrsqrtssXmmXmmXmmm32,
-
-            MaxpdXmmXmmm128,
-            VmaxpdXmmXmmXmmm128,
-            VmaxpdYmmYmmYmmm256,
-            MaxpsXmmXmmm128,
-            VmaxpsXmmXmmXmmm128,
-            VmaxpsYmmYmmYmmm256,
-            MaxsdXmm0To63Xmmm64,
-            VmaxsdXmmXmmXmmm64,
-            MaxssXmm0To31Xmmm32,
             VmaxssXmmXmmXmmm32,
-            MinpdXmmXmmm128,
-            VminpdXmmXmmXmmm128,
-            VminpdYmmYmmYmmm256,
-            MinpsXmmXmmm128,
-            VminpsXmmXmmXmmm128,
-            VminpsYmmYmmYmmm256,
-            MinsdXmm0To63Xmmm64,
-            VminsdXmmXmmXmmm64,
-            MinssXmm0To31Xmmm32,
             VminssXmmXmmXmmm32,
-            DppdXmmXmmm128Imm8,
-            VdppdXmmXmmXmmm128Imm8,
-            DppsXmmXmmm128Imm8,
-            VdppsXmmXmmXmmm128Imm8,
-            VdppsYmmYmmYmmm256Imm8,
-            HaddpdXmmXmmm128,
-            VhaddpdXmmXmmXmmm128,
-            VhaddpdYmmYmmYmmm256,
-            HaddpsXmmXmmm128,
-            VhaddpsXmmXmmXmmm128,
-            VhaddpsYmmYmmYmmm256,
-            HsubpdXmmXmmm128,
-            VhsubpdXmmXmmXmmm128,
-            VhsubpdYmmYmmYmmm256,
-            HsubpsXmmXmmm128,
-            VhsubpsXmmXmmXmmm128,
-            VhsubpsYmmYmmYmmm256,
-
-
-            MulpdXmmXmmm128,
-            VmulpdXmmXmmXmmm128,
-            VmulpdYmmYmmYmmm256,
-            MulpsXmmXmmm128,
-            VmulpsXmmXmmXmmm128,
-            VmulpsYmmYmmYmmm256,
-            MulsdXmm0To63Xmmm64,
-            VmulsdXmmXmmXmmm64,
-            MulssXmm0To31Xmmm32,
             VmulssXmmXmmXmmm32,
-
-            RcppsXmmXmmm128,
-            VrcppsXmmXmmm128,
-            VrcppsYmmYmmm256,
-            RcpssXmm0To31Xmmm32,
             VrcpssXmmXmmXmmm32
+                                      ),
 
-                                     ),
 
-    LOGICAL_MM_INSTRUCTIONS(
 
+    ARITHMETIC_PD_AVX_YMM_INSTRUCTIONS(
+            VaddpdYmmYmmYmmm256,
+            VaddsubpdYmmYmmYmmm256,
+            Vfmadd132pdYmmYmmYmmm256,
+            Vfmadd213pdYmmYmmYmmm256,
+            Vfmadd231pdYmmYmmYmmm256,
+            Vfmaddsub132pdYmmYmmYmmm256,
+            Vfmaddsub213pdYmmYmmYmmm256,
+            Vfmaddsub231pdYmmYmmYmmm256,
+            Vfmsubadd132pdYmmYmmYmmm256,
+            Vfmsubadd213pdYmmYmmYmmm256,
+            Vfmsubadd231pdYmmYmmYmmm256,
+            Vfmsub132pdYmmYmmYmmm256,
+            Vfmsub213pdYmmYmmYmmm256,
+            Vfmsub231pdYmmYmmYmmm256,
+            Vfnmadd132pdYmmYmmYmmm256,
+            Vfnmadd213pdYmmYmmYmmm256,
+            Vfnmadd231pdYmmYmmYmmm256,
+            Vfnmsub132pdYmmYmmYmmm256,
+            Vfnmsub213pdYmmYmmYmmm256,
+            Vfnmsub231pdYmmYmmYmmm256,
+            VsubpdYmmYmmYmmm256,
+            VdivpdYmmYmmYmmm256,
+            VsqrtpdYmmYmmm256,
+            VroundpdYmmYmmm256Imm8,
+            VmaxpdYmmYmmYmmm256,
+            VminpdYmmYmmYmmm256,
+            VhaddpdYmmYmmYmmm256,
+            VhsubpdYmmYmmYmmm256,
+            VmulpdYmmYmmYmmm256
+                                      ),
+    ARITHMETIC_PS_AVX_YMM_INSTRUCTIONS(
+            VaddpsYmmYmmYmmm256,
+            VaddsubpsYmmYmmYmmm256,
+            Vfmadd132psYmmYmmYmmm256,
+            Vfmadd213psYmmYmmYmmm256,
+            Vfmadd231psYmmYmmYmmm256,
+            Vfmaddsub132psYmmYmmYmmm256,
+            Vfmaddsub213psYmmYmmYmmm256,
+            Vfmaddsub231psYmmYmmYmmm256,
+            Vfmsubadd132psYmmYmmYmmm256,
+            Vfmsubadd213psYmmYmmYmmm256,
+            Vfmsubadd231psYmmYmmYmmm256,
+            Vfmsub132psYmmYmmYmmm256,
+            Vfmsub213psYmmYmmYmmm256,
+            Vfmsub231psYmmYmmYmmm256,
+            Vfnmadd132psYmmYmmYmmm256,
+            Vfnmadd213psYmmYmmYmmm256,
+            Vfnmadd231psYmmYmmYmmm256,
+            Vfnmsub132psYmmYmmYmmm256,
+            Vfnmsub213psYmmYmmYmmm256,
+            Vfnmsub231psYmmYmmYmmm256,
+            VsubpsYmmYmmYmmm256,
+            VdivpsYmmYmmYmmm256,
+            VsqrtpsYmmYmmm256,
+            VroundpsYmmYmmm256Imm8,
+            VrsqrtpsYmmYmmm256,
+            VmaxpsYmmYmmYmmm256,
+            VminpsYmmYmmYmmm256,
+            VdppsYmmYmmYmmm256Imm8,
+            VhaddpsYmmYmmYmmm256,
+            VhsubpsYmmYmmYmmm256,
+            VmulpsYmmYmmYmmm256,
+            VrcppsYmmYmmm256
+                                      ),
+
+
+
+    LOGICAL_D_MMX_INSTRUCTIONS(
             PandMmMmm64,
-            PandnMmMmm64,
-            PorMmMmm64,
-            PxorMmMmm64,
-            PsllwMmMmm64,
-            PsllwMmImm8,
             PslldMmMmm64,
             PslldMmImm8,
+            PsrldMmMmm64,
+            PsrldMmImm8
+                              ),
+    LOGICAL_MMX_INSTRUCTIONS(
+            PandnMmMmm64,
+            PorMmMmm64,
+            PxorMmMmm64
+                            ),
+    LOGICAL_W_MMX_INSTRUCTIONS(
+            PsllwMmMmm64,
+            PsllwMmImm8,
+            PsrlwMmMmm64,
+            PsrlwMmImm8
+                              ),
+    LOGICAL_Q_MMX_INSTRUCTIONS(
             PsllqMmMmm64,
             PsllqMmImm8,
-            PsrlwMmMmm64,
-            PsrlwMmImm8,
-            PsrldMmMmm64,
-            PsrldMmImm8,
             PsrlqMmMmm64,
             PsrlqMmImm8
-                           ),
+                              ),
 
-    REORDER_MM_INSTRUCTIONS(
-
-            PacksswbMmMmm64,
-            PackssdwMmMmm64,
-            PackuswbMmMmm64,
-            PalignrMmMmm64Imm8,
-            PshufbMmMmm64,
-            PshufwMmMmm64Imm8,
+    REORDER_SSWB_MMX_INSTRUCTIONS(
+            PacksswbMmMmm64
+                                 ),
+    REORDER_SSDW_MMX_INSTRUCTIONS(
+            PackssdwMmMmm64
+                                 ),
+    REORDER_USWB_MMX_INSTRUCTIONS(
+            PackuswbMmMmm64
+                                 ),
+    REORDER_MMX_INSTRUCTIONS(
+            PalignrMmMmm64Imm8
+                            ),
+    REORDER_B_MMX_INSTRUCTIONS(
+            PshufbMmMmm64
+                              ),
+    REORDER_W_MMX_INSTRUCTIONS(
+            PshufwMmMmm64Imm8
+                              ),
+    REORDER_BW_MMX_INSTRUCTIONS(
             PunpckhbwMmMmm64,
+            PunpcklbwMmMmm32
+                               ),
+    REORDER_WD_MMX_INSTRUCTIONS(
             PunpckhwdMmMmm64,
+            PunpcklwdMmMmm32
+                               ),
+    REORDER_DQ_MMX_INSTRUCTIONS(
             PunpckhdqMmMmm64,
-            PunpcklbwMmMmm32,
-            PunpcklwdMmMmm32,
             PunpckldqMmMmm32
-                           ),
+                               ),
 
-    REORDER_XMM_INSTRUCTIONS(
+    REORDER_PS_SSE_XMM_INSTRUCTIONS(
             BlendpsXmmXmmm128Imm8,
-            VblendpsXmmXmmXmmm128Imm8,
-            VblendpsYmmYmmYmmm256Imm8,
-            BlendvpdXmmXmmm128Xmm0,
-            VblendvpdXmmXmmXmmm128Xmm,
-            VblendvpdYmmYmmYmmm256Ymm,
             BlendvpsXmmXmmm128Xmm0,
-            VblendvpsXmmXmmXmmm128Xmm,
-            VblendvpsYmmYmmYmmm256Ymm,
-            BlendpdXmmXmmm128Imm8,
-            VblendpdXmmXmmXmmm128Imm8,
-            VblendpdYmmYmmYmmm256Imm8,
             InsertpsXmmXmmm32Imm8,
-            VinsertpsXmmXmmXmmm32Imm8,
-            PacksswbXmmXmmm128,
-            PackssdwXmmXmmm128,
-            VpacksswbXmmXmmXmmm128,
-            VpackssdwXmmXmmXmmm128,
-            VpacksswbYmmYmmYmmm256,
-            VpackssdwYmmYmmYmmm256,
-            PackusdwXmmXmmm128,
-            VpackusdwXmmXmmXmmm128,
-            VpackusdwYmmYmmYmmm256,
-            PackuswbXmmXmmm128,
-            VpackuswbXmmXmmXmmm128,
-            VpackuswbYmmYmmYmmm256,
-            PalignrXmmXmmm128Imm8,
-            VpalignrXmmXmmXmmm128Imm8,
-            VpalignrYmmYmmYmmm256Imm8,
-
-
+            ShufpsXmmXmmm128Imm8,
+            UnpckhpsXmmXmmm128,
+            UnpcklpsXmmXmmm128
+                                   ),
+    REORDER_PD_SSE_XMM_INSTRUCTIONS(
+            BlendvpdXmmXmmm128Xmm0,
+            BlendpdXmmXmmm128Imm8,
+            ShufpdXmmXmmm128Imm8,
+            UnpckhpdXmmXmmm128,
+            UnpcklpdXmmXmmm128
+                                   ),
+    REORDER_SSWB_SSE_XMM_INSTRUCTIONS(
+            PacksswbXmmXmmm128
+                                     ),
+    REORDER_SSDW_SSE_XMM_INSTRUCTIONS(
+            PackssdwXmmXmmm128
+                                     ),
+    REORDER_USDW_SSE_XMM_INSTRUCTIONS(
+            PackusdwXmmXmmm128
+                                     ),
+    REORDER_USWB_SSE_XMM_INSTRUCTIONS(
+            PackuswbXmmXmmm128
+                                     ),
+    REORDER_SSE_XMM_INSTRUCTIONS(
+            PalignrXmmXmmm128Imm8
+                                 ),
+    REORDER_B_SSE_XMM_INSTRUCTIONS(
             PblendvbXmmXmmm128Xmm0,
-            VpblendvbXmmXmmXmmm128Xmm,
-            VpblendvbYmmYmmYmmm256Ymm,
+            PshufbXmmXmmm128
+                                  ),
+    REORDER_W_SSE_XMM_INSTRUCTIONS(
             PblendwXmmXmmm128Imm8,
-            VpblendwXmmXmmXmmm128Imm8,
-            VpblendwYmmYmmYmmm256Imm8,
-
-            PshufbXmmXmmm128,
-            VpshufbXmmXmmXmmm128,
-            VpshufbYmmYmmYmmm256,
-            PshufdXmmXmmm128Imm8,
-            VpshufdXmmXmmm128Imm8,
-            VpshufdYmmYmmm256Imm8,
             PshufhwXmmXmmm128Imm8,
-            VpshufhwXmmXmmm128Imm8,
-            VpshufhwYmmYmmm256Imm8,
-            PshuflwXmmXmmm128Imm8,
-            VpshuflwXmmXmmm128Imm8,
-            VpshuflwYmmYmmm256Imm8,
+            PshuflwXmmXmmm128Imm8
+                                  ),
+    REORDER_D_SSE_XMM_INSTRUCTIONS(
+            PshufdXmmXmmm128Imm8
+                                  ),
+    REORDER_BW_SSE_XMM_INSTRUCTIONS(
             PunpckhbwXmmXmmm128,
-
+            PunpcklbwXmmXmmm128
+                                   ),
+    REORDER_WD_SSE_XMM_INSTRUCTIONS(
             PunpckhwdXmmXmmm128,
-
+            PunpcklwdXmmXmmm128
+                                   ),
+    REORDER_DQ_SSE_XMM_INSTRUCTIONS(
             PunpckhdqXmmXmmm128,
             PunpckhqdqXmmXmmm128,
+            PunpckldqXmmXmmm128,
+            PunpcklqdqXmmXmmm128
+                                   ),
+
+
+    REORDER_PS_AVX_XMM_INSTRUCTIONS(
+            VblendpsXmmXmmXmmm128Imm8,
+            VblendvpsXmmXmmXmmm128Xmm,
+            VinsertpsXmmXmmXmmm32Imm8,
+            VshufpsXmmXmmXmmm128Imm8,
+            VunpckhpsXmmXmmXmmm128,
+            VunpcklpsXmmXmmXmmm128,
+            VpermilpsXmmXmmXmmm128,
+            VpermilpsXmmXmmm128Imm8
+                                   ),
+    REORDER_PD_AVX_XMM_INSTRUCTIONS(
+            VblendvpdXmmXmmXmmm128Xmm,
+            VblendpdXmmXmmXmmm128Imm8,
+            VshufpdXmmXmmXmmm128Imm8,
+            VunpckhpdXmmXmmXmmm128,
+            VunpcklpdXmmXmmXmmm128,
+            VpermilpdXmmXmmXmmm128,
+            VpermilpdXmmXmmm128Imm8
+                                   ),
+    REORDER_SSWB_AVX_XMM_INSTRUCTIONS(
+            VpacksswbXmmXmmXmmm128
+                                     ),
+    REORDER_SSDW_AVX_XMM_INSTRUCTIONS(
+            VpackssdwXmmXmmXmmm128
+                                     ),
+    REORDER_USDW_AVX_XMM_INSTRUCTIONS(
+            VpackusdwXmmXmmXmmm128
+                                     ),
+    REORDER_USWB_AVX_XMM_INSTRUCTIONS(
+            VpackuswbXmmXmmXmmm128
+                                     ),
+    REORDER_AVX_XMM_INSTRUCTIONS(
+            VpalignrXmmXmmXmmm128Imm8,
+            Vextractf128Xmmm128YmmImm8,
+            Vextracti128Xmmm128YmmImm8
+                                 ),
+    REORDER_B_AVX_XMM_INSTRUCTIONS(
+            VpblendvbXmmXmmXmmm128Xmm,
+            VpshufbXmmXmmXmmm128
+                                  ),
+    REORDER_W_AVX_XMM_INSTRUCTIONS(
+            VpblendwXmmXmmXmmm128Imm8,
+            VpshufhwXmmXmmm128Imm8,
+            VpshuflwXmmXmmm128Imm8
+                                  ),
+    REORDER_D_AVX_XMM_INSTRUCTIONS(
+            VpshufdXmmXmmm128Imm8,
+            VpblenddXmmXmmXmmm128Imm8
+                                  ),
+    REORDER_BW_AVX_XMM_INSTRUCTIONS(
             VpunpckhbwXmmXmmXmmm128,
+            VpunpcklbwXmmXmmXmmm128
+                                   ),
+    REORDER_WD_AVX_XMM_INSTRUCTIONS(
             VpunpckhwdXmmXmmXmmm128,
+            VpunpcklwdXmmXmmXmmm128
+                                   ),
+    REORDER_DQ_AVX_XMM_INSTRUCTIONS(
             VpunpckhdqXmmXmmXmmm128,
             VpunpckhqdqXmmXmmXmmm128,
-            VpunpckhbwYmmYmmYmmm256,
-            VpunpckhwdYmmYmmYmmm256,
-            VpunpckhdqYmmYmmYmmm256,
-            VpunpckhqdqYmmYmmYmmm256,
-            PunpcklbwXmmXmmm128,
-            PunpcklwdXmmXmmm128,
-            PunpckldqXmmXmmm128,
-            PunpcklqdqXmmXmmm128,
-            VpunpcklbwXmmXmmXmmm128,
-            VpunpcklwdXmmXmmXmmm128,
             VpunpckldqXmmXmmXmmm128,
-            VpunpcklqdqXmmXmmXmmm128,
-            VpunpcklbwYmmYmmYmmm256,
-            VpunpcklwdYmmYmmYmmm256,
-            VpunpckldqYmmYmmYmmm256,
-            VpunpcklqdqYmmYmmYmmm256,
+            VpunpcklqdqXmmXmmXmmm128
+                                   ),
+    REORDER_Q_AVX_XMM_INSTRUCTIONS(
+            VpbroadcastqXmmXmmm64
+                                  ),
 
 
-            ShufpdXmmXmmm128Imm8,
-            VshufpdXmmXmmXmmm128Imm8,
-            VshufpdYmmYmmYmmm256Imm8,
-            ShufpsXmmXmmm128Imm8,
-            VshufpsXmmXmmXmmm128Imm8,
+
+    REORDER_PS_AVX_YMM_INSTRUCTIONS(
+            VblendpsYmmYmmYmmm256Imm8,
+            VblendvpsYmmYmmYmmm256Ymm,
             VshufpsYmmYmmYmmm256Imm8,
-            UnpckhpdXmmXmmm128,
-            VunpckhpdXmmXmmXmmm128,
-            VunpckhpdYmmYmmYmmm256,
-            UnpckhpsXmmXmmm128,
-            VunpckhpsXmmXmmXmmm128,
             VunpckhpsYmmYmmYmmm256,
-            UnpcklpdXmmXmmm128,
-            VunpcklpdXmmXmmXmmm128,
-            VunpcklpdYmmYmmYmmm256,
-            UnpcklpsXmmXmmm128,
-            VunpcklpsXmmXmmXmmm128,
             VunpcklpsYmmYmmYmmm256,
-            Vextractf128Xmmm128YmmImm8,
-            Vextracti128Xmmm128YmmImm8,
-            Vinsertf128YmmYmmXmmm128Imm8,
-            Vinserti128YmmYmmXmmm128Imm8,
-            VpblenddXmmXmmXmmm128Imm8,
-            VpblenddYmmYmmYmmm256Imm8,
-            VpbroadcastqXmmXmmm64,
-            VpbroadcastqYmmXmmm64,
-            Vperm2f128YmmYmmYmmm256Imm8,
-            Vperm2i128YmmYmmYmmm256Imm8,
-            VpermdYmmYmmYmmm256,
-            VpermilpdXmmXmmXmmm128,
-            VpermilpdYmmYmmYmmm256,
-            VpermilpdXmmXmmm128Imm8,
-            VpermilpdYmmYmmm256Imm8,
-            VpermilpsXmmXmmXmmm128,
-            VpermilpsXmmXmmm128Imm8,
             VpermilpsYmmYmmYmmm256,
             VpermilpsYmmYmmm256Imm8,
-            VpermpdYmmYmmm256Imm8,
-            VpermpsYmmYmmYmmm256,
-            VpermqYmmYmmm256Imm8)
+            VpermpsYmmYmmYmmm256
+                                   ),
+    REORDER_PD_AVX_YMM_INSTRUCTIONS(
+            VblendvpdYmmYmmYmmm256Ymm,
+            VblendpdYmmYmmYmmm256Imm8,
+            VshufpdYmmYmmYmmm256Imm8,
+            VunpckhpdYmmYmmYmmm256,
+            VunpcklpdYmmYmmYmmm256,
+            VpermilpdYmmYmmYmmm256,
+            VpermilpdYmmYmmm256Imm8,
+            VpermpdYmmYmmm256Imm8
+                                   ),
+    REORDER_SSWB_AVX_YMM_INSTRUCTIONS(
+            VpacksswbYmmYmmYmmm256
+                                     ),
+    REORDER_SSDW_AVX_YMM_INSTRUCTIONS(
+            VpackssdwYmmYmmYmmm256
+                                     ),
+    REORDER_USDW_AVX_YMM_INSTRUCTIONS(
+            VpackusdwYmmYmmYmmm256
+                                     ),
+    REORDER_USWB_AVX_YMM_INSTRUCTIONS(
+            VpackuswbYmmYmmYmmm256
+                                     ),
+    REORDER_AVX_YMM_INSTRUCTIONS(
+            VpalignrYmmYmmYmmm256Imm8,
+            Vinsertf128YmmYmmXmmm128Imm8,
+            Vinserti128YmmYmmXmmm128Imm8,
+            Vperm2f128YmmYmmYmmm256Imm8,
+            Vperm2i128YmmYmmYmmm256Imm8
+                                 ),
+    REORDER_B_AVX_YMM_INSTRUCTIONS(
+            VpblendvbYmmYmmYmmm256Ymm,
+            VpshufbYmmYmmYmmm256
+                                  ),
+    REORDER_W_AVX_YMM_INSTRUCTIONS(
+            VpblendwYmmYmmYmmm256Imm8,
+            VpshufhwYmmYmmm256Imm8,
+            VpshuflwYmmYmmm256Imm8
+                                  ),
+    REORDER_D_AVX_YMM_INSTRUCTIONS(
+            VpshufdYmmYmmm256Imm8,
+            VpblenddYmmYmmYmmm256Imm8,
+            VpermdYmmYmmYmmm256
+                                  ),
+    REORDER_BW_AVX_YMM_INSTRUCTIONS(
+            VpunpckhbwYmmYmmYmmm256,
+            VpunpcklbwYmmYmmYmmm256
+                                   ),
+    REORDER_WD_AVX_YMM_INSTRUCTIONS(
+            VpunpckhwdYmmYmmYmmm256,
+            VpunpcklwdYmmYmmYmmm256
+                                   ),
+    REORDER_DQ_AVX_YMM_INSTRUCTIONS(
+            VpunpckhdqYmmYmmYmmm256,
+            VpunpckhqdqYmmYmmYmmm256,
+            VpunpckldqYmmYmmYmmm256,
+            VpunpcklqdqYmmYmmYmmm256
+                                   ),
+    REORDER_Q_AVX_YMM_INSTRUCTIONS(
+            VpbroadcastqYmmXmmm64,
+            VpermqYmmYmmm256Imm8
+                                  ),
+
+
+
 
     ;
 

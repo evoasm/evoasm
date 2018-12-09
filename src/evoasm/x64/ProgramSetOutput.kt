@@ -3,8 +3,7 @@ package evoasm.x64
 import kasm.Address
 import kasm.Structure
 import kasm.ext.log2
-import kasm.x64.AddressExpression64
-import kasm.x64.Assembler
+import kasm.x64.*
 
 abstract class ProgramSetOutput(programSet: ProgramSet, programSetInput: ProgramSetInput) {
     protected abstract val structure: Structure
@@ -13,7 +12,7 @@ abstract class ProgramSetOutput(programSet: ProgramSet, programSetInput: Program
 
     internal abstract fun emitStore(assembler: Assembler)
 
-    protected fun emitStore(assembler: Assembler, address: Address, elementSize: Int, block: (AddressExpression64) -> Unit) {
+    protected fun emitStore(assembler: Assembler, address: Address, elementSize: Int, block: (GpRegister64) -> Unit) {
         require(elementSize % 2 == 0)
 
         with(assembler) {
@@ -32,20 +31,20 @@ abstract class ProgramSetOutput(programSet: ProgramSet, programSetInput: Program
                 mov(Interpreter.SCRATCH_REGISTER2, address.toLong() + size * elementSize)
                 add(Interpreter.SCRATCH_REGISTER1,
                     Interpreter.SCRATCH_REGISTER2)
-                block(AddressExpression64(Interpreter.SCRATCH_REGISTER1))
+                block(Interpreter.SCRATCH_REGISTER1)
             } else {
                 // TODO: if elementSize == 1, can use scale, if address is 32-bit can use displacement
                 sal(Interpreter.SCRATCH_REGISTER1, log2(elementSize).toByte())
                 mov(Interpreter.SCRATCH_REGISTER2, address)
                 add(Interpreter.SCRATCH_REGISTER1,
                     Interpreter.SCRATCH_REGISTER2)
-                block(AddressExpression64(base = Interpreter.SCRATCH_REGISTER1))
+                block(Interpreter.SCRATCH_REGISTER1)
             }
         }
     }
 }
 
-abstract class ValueProgramSetOutput<T>(programSet: ProgramSet, programSetInput: ProgramSetInput) : ProgramSetOutput(programSet, programSetInput) {
+abstract class ValueProgramSetOutput<T : Number>(programSet: ProgramSet, programSetInput: ProgramSetInput) : ProgramSetOutput(programSet, programSetInput) {
     abstract operator fun get(programIndex: Int, outputIndex: Int): T
 }
 
@@ -102,7 +101,80 @@ class DoubleProgramSetOutput(programSet: ProgramSet, programSetInput: ProgramSet
     override fun emitStore(assembler: Assembler) {
         emitStore(assembler, storage.field.address, 8) {
             val outputRegister = Interpreter.XMM_REGISTERS.first()
-            assembler.movDouble(it, outputRegister)
+            assembler.movDouble(AddressExpression64(it), outputRegister)
         }
+    }
+}
+
+abstract class VectorProgramSetOutput<T : Number>(programSet: ProgramSet, programSetInput: ProgramSetInput, val vectorSize: VectorSize) : ProgramSetOutput(programSet, programSetInput) {
+
+    override val structure: Structure get() = storage
+    protected val storage: Storage
+
+    protected class Storage(programCount: Int,
+                            inputSize: Int,
+                            vectorRegisterType: VectorRegisterType) : Structure() {
+        val field = vectorField(intArrayOf(programCount, inputSize), vectorRegisterType)
+    }
+
+    init {
+        storage = Storage(programSet.size, programSet.size, vectorSize.vectorRegisterType)
+        storage.allocate()
+    }
+
+
+    abstract operator fun get(programIndex: Int, outputIndex: Int, elementIndex: Int) : T
+    abstract operator fun get(programIndex: Int, outputIndex: Int) : Array<T>
+
+
+    /* pretty much the same for all integer sizes */
+    internal fun emitIntegerStore(assembler: Assembler) {
+
+        when(vectorSize) {
+            VectorSize.BITS_64  -> {
+                val outputRegister = Interpreter.MM_REGISTERS.first()
+                emitStore(assembler, storage.field.address, vectorSize.byteSize) { baseRegister ->
+                    assembler.movq(AddressExpression64(baseRegister), outputRegister)
+                }
+            }
+            VectorSize.BITS_128 -> {
+                val outputRegister = Interpreter.XMM_REGISTERS.first()
+                emitStore(assembler, storage.field.address, vectorSize.byteSize) { baseRegister ->
+                    if (VmovdqaXmmXmmm128.isSupported()) {
+                        assembler.vmovdqa(AddressExpression128(baseRegister), outputRegister)
+                    } else {
+                        assembler.movdqa(AddressExpression128(baseRegister), outputRegister)
+                    }
+                }
+            }
+            VectorSize.BITS_256 -> {
+                val outputRegister = Interpreter.YMM_REGISTERS.first()
+                emitStore(assembler, storage.field.address, vectorSize.byteSize) { baseRegister ->
+                    assembler.vmovdqa( AddressExpression256(baseRegister), outputRegister)
+                }
+            }
+            VectorSize.BITS_512 -> TODO()
+        }
+    }
+
+}
+
+class ByteVectorProgramSetOutput(programSet: ProgramSet, programSetInput: ProgramSetInput, vectorSize: VectorSize) : VectorProgramSetOutput<Byte>(programSet, programSetInput, vectorSize) {
+    override fun get(programIndex: Int, outputIndex: Int, elementIndex: Int): Byte {
+        return getByte(programIndex, outputIndex, elementIndex)
+    }
+
+    private fun getByte(programIndex: Int, outputIndex: Int, elementIndex: Int): Byte {
+        return storage.field.getByte(programIndex, outputIndex, elementIndex)
+    }
+
+    override fun get(programIndex: Int, outputIndex: Int): Array<Byte> {
+        return Array(vectorSize.byteSize) {
+            storage.field.getByte(programIndex, outputIndex, it)
+        }
+    }
+
+    override fun emitStore(assembler: Assembler) {
+        emitIntegerStore(assembler)
     }
 }

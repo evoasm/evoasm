@@ -1,9 +1,6 @@
 package evoasm.x64
 
-import kasm.x64.AddRm64R64
-import kasm.x64.AddsdXmm0To63Xmmm64
-import kasm.x64.SubRm64R64
-import kasm.x64.SubsdXmm0To63Xmmm64
+import kasm.x64.*
 import org.junit.jupiter.api.Test
 
 
@@ -68,12 +65,21 @@ internal class InterpreterTest {
 
     @Test
     fun addSubLong() {
+        addSubLong(InterpreterOptions.defaultInstructions)
+    }
+
+    @Test
+    fun addSubLongOnlyGpInstructions() {
+        addSubLong(InstructionGroup.ARITHMETIC_GP64_INSTRUCTIONS.instructions)
+    }
+
+    fun addSubLong(instructions: List<Instruction>) {
         val programSize = 10_000
         val expectedOutput = programSize.toLong()
         val programInput = LongProgramSetInput(1, 2)
         programInput.set(0, 0, 0x0L)
         programInput.set(0, 1, 0x1L)
-        val options = InterpreterOptions.DEFAULT
+        val options = InterpreterOptions(instructions = instructions)
         val programSet = ProgramSet(2, programSize)
         val programSetOutput = LongProgramSetOutput(programSet, programInput)
         val interpreter = Interpreter(programSet, programInput, programSetOutput, options = options)
