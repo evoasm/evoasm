@@ -375,6 +375,8 @@ class Interpreter(val programSet: ProgramSet,
 
     private var firstInstructionOffset: Int = -1
 
+    private val moveInstructionMap = mutableMapOf<Triple<Instruction, Int, Int>, InterpreterInstruction>()
+
 //    private val instructionParameters = InterpreterInstructionParameters(this)
 //    private val instructionTracer = InterpreterInstructionTracer(this)
 
@@ -408,6 +410,10 @@ class Interpreter(val programSet: ProgramSet,
         val index = options.instructions.indexOf(instruction)
         if (index == -1) return null;
         return getInterpreterInstruction(index)
+    }
+
+    fun getInterpreterMoveInstruction(instruction: Instruction, destinationRegisterIndex: Int, sourceRegisterIndex: Int): InterpreterInstruction? {
+        return moveInstructionMap[Triple(instruction, destinationRegisterIndex, sourceRegisterIndex)]
     }
 
     fun getInstruction(interpreterInstruction: InterpreterInstruction): Instruction {
@@ -550,7 +556,7 @@ class Interpreter(val programSet: ProgramSet,
     private fun emitInstructions() {
         println("emitting ${options.instructions.size} instructions")
         options.instructions.forEach {
-            emitInstruction {
+            emitInstruction {_ ->
                 if (it in DIV_INSTRUCTIONS && options.safeDivision) {
                     emitDivInstruction(it)
                 } else {
@@ -627,12 +633,33 @@ class Interpreter(val programSet: ProgramSet,
         }
 
         //NOTE: using the pd variant of the mov might cause a domain switch latency
-        // i.e. if the register holds integer data (or possibly a single double?) and we use a pd mov
+        // i.e. if the register holds integer data (or possibly even packed vs single, single vs double float?) and we use a pd mov
         // https://stackoverflow.com/questions/6678073/difference-between-movdqa-and-movaps-x86-instructions
 
-        registers.take(3).forEach { destinationRegister ->
-            registers.drop(3).forEach { sourceRegister ->
+        val movePairs = mutableListOf<Pair<Int, Int>>()
+//        for (i in 0 until 3) {
+//            for(j in 0 until 3) {
+//                movePairs.add(Pair(i, j))
+//            }
+//        }
+
+//        for (i in 0 until 3) {
+//            for(j in 0 until registers.size) {
+//                movePairs.add(Pair(i, j))
+//                movePairs.add(Pair(j, i))
+//            }
+//        }
+
+        movePairs.add(Pair(1, 0))
+
+        movePairs.forEach { (destinationRegisterIndex, sourceRegisterIndex) ->
+            val sourceRegister = registers[sourceRegisterIndex]
+            val destinationRegister = registers[destinationRegisterIndex]
+
                 emitInstruction {
+
+                    moveInstructionMap[Triple(instruction as Instruction, destinationRegisterIndex, sourceRegisterIndex)] = it
+
                     when (instruction) {
                         is R64m64R64Instruction  -> instruction.encode(buffer,
                                                                        destinationRegister as GpRegister64,
@@ -660,7 +687,6 @@ class Interpreter(val programSet: ProgramSet,
                                                                        sourceRegister as YmmRegister)
                     }
                 }
-            }
         }
     }
 
@@ -668,14 +694,14 @@ class Interpreter(val programSet: ProgramSet,
         output.emitStore(assembler)
     }
 
-    private fun emitInstruction(dispatch: Boolean = true, block: () -> Unit) {
-        addInstruction()
+    private fun emitInstruction(dispatch: Boolean = true, block: (InterpreterInstruction) -> Unit) {
+        val interpreterInstruction = addInstruction()
         encodeInstructionProlog()
-        block()
+        block(interpreterInstruction)
         emitInstructionEpilog(dispatch)
     }
 
-    private fun addInstruction() {
+    private fun addInstruction() : InterpreterInstruction {
         val index = if (firstInstructionOffset > 0) {
             ((buffer.byteBuffer.position() - firstInstructionOffset) / 8).toUShort()
         } else {
@@ -688,6 +714,7 @@ class Interpreter(val programSet: ProgramSet,
             instructions = newInstructions
         }
         instructions[instructionCounter++] = index
+        return InterpreterInstruction(index)
     }
 
     fun run() {

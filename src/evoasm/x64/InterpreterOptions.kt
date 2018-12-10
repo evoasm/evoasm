@@ -1,9 +1,6 @@
 package evoasm.x64
 
-import kasm.x64.Instruction
-import kasm.x64.MovR64Rm64
-import kasm.x64.MoveInstruction
-import kasm.x64.MovsdXmmm64Xmm
+import kasm.x64.*
 
 class InterpreterOptions(instructions: List<Instruction> = defaultInstructions,
                          val allowUnsupportedInstructions: Boolean = false,

@@ -107,6 +107,43 @@ internal class InterpreterTest {
     }
 
     @Test
+    fun addSubByteVector() {
+        val programSize = 10
+        val programInput = ByteVectorProgramSetInput(1, 3, VectorSize.BITS_256)
+        val expectedOutput = Array(programInput.vectorSize.byteSize) { ((it % 4) * programSize).toByte() }
+        programInput.set(0, 0, Array(programInput.vectorSize.byteSize){0.toByte()})
+        programInput.set(0, 1, Array(programInput.vectorSize.byteSize){0.toByte()})
+        programInput.set(0, 2, Array(programInput.vectorSize.byteSize){(it % 4).toByte()})
+        val options = InterpreterOptions(instructions = InstructionGroup.ARITHMETIC_B_AVX_YMM_INSTRUCTIONS.instructions, moveInstructions = listOf(VmovapdYmmYmmm256))
+        val programSet = ProgramSet(2, programSize)
+        val programSetOutput = ByteVectorProgramSetOutput(programSet, programInput, VectorSize.BITS_256)
+        val interpreter = Interpreter(programSet, programInput, programSetOutput, options = options)
+
+        for (i in 0 until programSet.programSize step 2) {
+            programSet.set(0, i, interpreter.getInterpreterInstruction(VpaddbYmmYmmYmmm256)!!)
+            programSet.set(0, i + 1, interpreter.getInterpreterMoveInstruction(VmovapdYmmYmmm256, 1, 0)!!)
+        }
+
+        for (i in 0 until programSet.programSize step 2) {
+            programSet.set(1, i, interpreter.getInterpreterInstruction(VpsubbYmmYmmYmmm256)!!)
+            programSet.set(0, i + 1, interpreter.getInterpreterMoveInstruction(VmovapdYmmYmmm256, 1, 0)!!)
+        }
+
+        run {
+            val output = programSetOutput.get(0, 0)
+            assertNotEquals(expectedOutput, output)
+        }
+
+        val measurements = interpreter.runAndMeasure()
+        println(measurements)
+
+        run {
+            assertEquals(expectedOutput.toList(), programSetOutput.get(0, 0).toList())
+            assertEquals<List<Byte>>(expectedOutput.map{(-it).toByte()}, programSetOutput.get(1, 0).toList())
+        }
+    }
+
+    @Test
     fun addDouble() {
         val programSize = 100_000
         val expectedOutput = programSize.toDouble()
