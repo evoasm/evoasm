@@ -46,9 +46,17 @@ class Interpreter(val programSet: ProgramSet,
         internal val COUNTERS_REGISTER = R13
         internal val SCRATCH_REGISTER2 = R15
         internal val GP_REGISTERS = listOf(RAX, RBX, RCX, RDX, RDI, RSI, R8, R9, R10, R11)
+        internal val GP_REGISTERS_SET = GP_REGISTERS.toEnumSet()
+
         internal val XMM_REGISTERS = XmmRegister.values().filter { it.isSupported() }.toList()
+        internal val XMM_REGISTERS_SET = XMM_REGISTERS.toEnumSet()
+
         internal val YMM_REGISTERS = YmmRegister.values().filter { it.isSupported() }.toList()
+        internal val YMM_REGISTERS_SET = YMM_REGISTERS.toEnumSet()
+
         internal val MM_REGISTERS = MmRegister.values().toList()
+        internal val MM_REGISTERS_SET = MM_REGISTERS.toEnumSet()
+
         private val DIV_INSTRUCTIONS = setOf(
                 IdivRm8Ax,
                 IdivRm16AxDx,
@@ -63,10 +71,10 @@ class Interpreter(val programSet: ProgramSet,
     }
 
     private val instructionTracer = object : InstructionTracer {
-        private val gpRegisters = GP_REGISTERS.toEnumSet()
-        private val xmmRegisters = XMM_REGISTERS.toEnumSet()
-        private val ymmRegisters = YMM_REGISTERS.toEnumSet()
-        private val mmRegisters = MM_REGISTERS.toEnumSet()
+        private val gpRegisters = GP_REGISTERS_SET
+        private val xmmRegisters = XMM_REGISTERS_SET
+        private val ymmRegisters = YMM_REGISTERS_SET
+        private val mmRegisters = MM_REGISTERS_SET
 
         private fun checkRegister(register: Register) {
 
@@ -375,7 +383,7 @@ class Interpreter(val programSet: ProgramSet,
 
     private var firstInstructionOffset: Int = -1
 
-    private val moveInstructionMap = mutableMapOf<Triple<Instruction, Int, Int>, InterpreterInstruction>()
+    private val moveInstructionMap = mutableMapOf<Triple<Instruction, Register, Register>, InterpreterInstruction>()
 
 //    private val instructionParameters = InterpreterInstructionParameters(this)
 //    private val instructionTracer = InterpreterInstructionTracer(this)
@@ -412,8 +420,8 @@ class Interpreter(val programSet: ProgramSet,
         return getInterpreterInstruction(index)
     }
 
-    fun getInterpreterMoveInstruction(instruction: Instruction, destinationRegisterIndex: Int, sourceRegisterIndex: Int): InterpreterInstruction? {
-        return moveInstructionMap[Triple(instruction, destinationRegisterIndex, sourceRegisterIndex)]
+    fun getInterpreterMoveInstruction(instruction: Instruction, destinationRegister: Register, sourceRegister: Register): InterpreterInstruction? {
+        return moveInstructionMap[Triple(instruction, destinationRegister, sourceRegister)]
     }
 
     fun getInstruction(interpreterInstruction: InterpreterInstruction): Instruction {
@@ -624,41 +632,27 @@ class Interpreter(val programSet: ProgramSet,
     private fun emitMoveInstructions(instruction: MoveInstruction) {
 
         val buffer = assembler.buffer
-        val registers: List<Register> = when (instruction) {
-            is R64m64R64Instruction, is R64R64m64Instruction                           -> GP_REGISTERS
-            is XmmXmmm64Instruction, is XmmXmmm128Instruction, is Xmmm64XmmInstruction -> XMM_REGISTERS
-            is YmmYmmm256Instruction                                                   -> YMM_REGISTERS
+        val (registersList, registersSet) = when (instruction) {
+            is R64m64R64Instruction, is R64R64m64Instruction                           -> GP_REGISTERS to GP_REGISTERS_SET
+            is XmmXmmm64Instruction, is XmmXmmm128Instruction, is Xmmm64XmmInstruction -> XMM_REGISTERS to XMM_REGISTERS_SET
+            is YmmYmmm256Instruction                                                   -> YMM_REGISTERS to YMM_REGISTERS_SET
             else                                                                       -> throw IllegalArgumentException(
                     "invalid move instruction $instruction")
-        }
+        } as Pair<List<Register>, Set<Register>>
+
+        val moves = options.movesGenerator(instruction, registersList)
 
         //NOTE: using the pd variant of the mov might cause a domain switch latency
         // i.e. if the register holds integer data (or possibly even packed vs single, single vs double float?) and we use a pd mov
         // https://stackoverflow.com/questions/6678073/difference-between-movdqa-and-movaps-x86-instructions
 
-        val movePairs = mutableListOf<Pair<Int, Int>>()
-//        for (i in 0 until 3) {
-//            for(j in 0 until 3) {
-//                movePairs.add(Pair(i, j))
-//            }
-//        }
-
-//        for (i in 0 until 3) {
-//            for(j in 0 until registers.size) {
-//                movePairs.add(Pair(i, j))
-//                movePairs.add(Pair(j, i))
-//            }
-//        }
-
-        movePairs.add(Pair(1, 0))
-
-        movePairs.forEach { (destinationRegisterIndex, sourceRegisterIndex) ->
-            val sourceRegister = registers[sourceRegisterIndex]
-            val destinationRegister = registers[destinationRegisterIndex]
+        moves.forEach { (destinationRegister, sourceRegister) ->
+            require(destinationRegister in registersSet)
+            require(sourceRegister in registersSet)
 
                 emitInstruction {
 
-                    moveInstructionMap[Triple(instruction as Instruction, destinationRegisterIndex, sourceRegisterIndex)] = it
+                    moveInstructionMap[Triple(instruction as Instruction, destinationRegister, sourceRegister)] = it
 
                     when (instruction) {
                         is R64m64R64Instruction  -> instruction.encode(buffer,

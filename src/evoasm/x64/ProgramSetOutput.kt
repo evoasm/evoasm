@@ -72,7 +72,7 @@ class LongProgramSetOutput(programSet: ProgramSet, programSetInput: ProgramSetIn
     override fun emitStore(assembler: Assembler) {
         emitStore(assembler, storage.field.address, 8) {
             val outputRegister = Interpreter.GP_REGISTERS.first()
-            assembler.mov(it, outputRegister)
+            assembler.mov(AddressExpression64(base = it), outputRegister)
         }
     }
 }
@@ -118,7 +118,7 @@ abstract class VectorProgramSetOutput<T : Number>(programSet: ProgramSet, progra
     }
 
     init {
-        storage = Storage(programSet.size, programSet.size, vectorSize.vectorRegisterType)
+        storage = Storage(programSet.size, programSetInput.size, vectorSize.vectorRegisterType)
         storage.allocate()
     }
 
