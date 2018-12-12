@@ -713,9 +713,9 @@ class Interpreter(val programSet: ProgramSet,
 
     fun run() {
 //        println("instruction counter: $instructionCounter")
-        println("running address is ${buffer.address}")
-        println("byte code address is ${programSet.byteBuffer.address}")
-        println("output address is ${output.buffer.address}/${output.buffer.capacity()}")
+//        println("running address is ${buffer.address}")
+//        println("byte code address is ${programSet.byteBuffer.address}")
+//        println("output address is ${output.buffer.address}/${output.buffer.capacity()}")
 //        println("first instruction is ${programSet.byteBuffer.asShortBuffer().get(0)}")
 //        println("sec instruction is ${programSet.byteBuffer.asShortBuffer().get(1)}")
 //        println("third instruction is ${programSet.byteBuffer.asShortBuffer().get(2)}")

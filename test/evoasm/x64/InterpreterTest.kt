@@ -34,14 +34,16 @@ internal class InterpreterTest {
         println("Output: ${programSetOutput[0, 0]}")
     }
 
+
     @Test
     fun addLong() {
-        val programSize = 10_000
+        val programSize = 5_500_000
         val expectedOutput = programSize.toLong()
         val programInput = LongProgramSetInput(1, 2)
         programInput[0, 0] = 0x0L
         programInput[0, 1] = 0x1L
-        val options = InterpreterOptions.DEFAULT
+        //val options = InterpreterOptions.DEFAULT
+        val options = InterpreterOptions(moveInstructions = emptyList(), instructions = InstructionGroup.ARITHMETIC_GP64_INSTRUCTIONS.instructions)
         val programSet = ProgramSet(1, programSize)
         val programSetOutput = LongProgramSetOutput(programSet, programInput)
         val interpreter = Interpreter(programSet, programInput, programSetOutput, options = options)
