@@ -178,3 +178,152 @@ class ByteVectorProgramSetOutput(programSet: ProgramSet, programSetInput: Progra
         emitIntegerStore(assembler)
     }
 }
+
+class IntVectorProgramSetOutput(programSet: ProgramSet, programSetInput: ProgramSetInput, vectorSize: VectorSize) : VectorProgramSetOutput<Int>(programSet, programSetInput, vectorSize) {
+    override fun get(programIndex: Int, outputIndex: Int, elementIndex: Int): Int {
+        return getInt(programIndex, outputIndex, elementIndex)
+    }
+
+    private fun getInt(programIndex: Int, outputIndex: Int, elementIndex: Int): Int {
+        return storage.field.getInt(programIndex, outputIndex, elementIndex)
+    }
+
+    override fun get(programIndex: Int, outputIndex: Int): Array<Int> {
+        return Array(vectorSize.byteSize / Int.SIZE_BYTES) {
+            storage.field.getInt(programIndex, outputIndex, it)
+        }
+    }
+
+    override fun emitStore(assembler: Assembler) {
+        emitIntegerStore(assembler)
+    }
+}
+
+class LongVectorProgramSetOutput(programSet: ProgramSet, programSetInput: ProgramSetInput, vectorSize: VectorSize) : VectorProgramSetOutput<Long>(programSet, programSetInput, vectorSize) {
+    override fun get(programIndex: Int, outputIndex: Int, elementIndex: Int): Long {
+        return getLong(programIndex, outputIndex, elementIndex)
+    }
+
+    private fun getLong(programIndex: Int, outputIndex: Int, elementIndex: Int): Long {
+        return storage.field.getLong(programIndex, outputIndex, elementIndex)
+    }
+
+    override fun get(programIndex: Int, outputIndex: Int): Array<Long> {
+        return Array(vectorSize.byteSize / Long.SIZE_BYTES) {
+            storage.field.getLong(programIndex, outputIndex, it)
+        }
+    }
+
+    override fun emitStore(assembler: Assembler) {
+        emitIntegerStore(assembler)
+    }
+}
+
+class ShortVectorProgramSetOutput(programSet: ProgramSet, programSetInput: ProgramSetInput, vectorSize: VectorSize) : VectorProgramSetOutput<Short>(programSet, programSetInput, vectorSize) {
+    override fun get(programIndex: Int, outputIndex: Int, elementIndex: Int): Short {
+        return getShort(programIndex, outputIndex, elementIndex)
+    }
+
+    private fun getShort(programIndex: Int, outputIndex: Int, elementIndex: Int): Short {
+        return storage.field.getShort(programIndex, outputIndex, elementIndex)
+    }
+
+    override fun get(programIndex: Int, outputIndex: Int): Array<Short> {
+        return Array(vectorSize.byteSize / Short.SIZE_BYTES) {
+            storage.field.getShort(programIndex, outputIndex, it)
+        }
+    }
+
+    override fun emitStore(assembler: Assembler) {
+        emitIntegerStore(assembler)
+    }
+}
+
+class FloatVectorProgramSetOutput(programSet: ProgramSet, programSetInput: ProgramSetInput, vectorSize: VectorSize) : VectorProgramSetOutput<Float>(programSet, programSetInput, vectorSize) {
+
+    private fun emitSingleFloatStore(assembler: Assembler) {
+        when(vectorSize) {
+            VectorSize.BITS_64  -> throw IllegalArgumentException("invalid vector size $vectorSize")
+            VectorSize.BITS_128 -> {
+                val outputRegister = Interpreter.XMM_REGISTERS.first()
+                emitStore(assembler, storage.field.address, vectorSize.byteSize) { baseRegister ->
+                    if (VmovapsXmmXmmm128.isSupported()) {
+                        assembler.vmovaps(AddressExpression128(baseRegister), outputRegister)
+                    } else {
+                        assembler.movaps(AddressExpression128(baseRegister), outputRegister)
+                    }
+                }
+            }
+            VectorSize.BITS_256 -> {
+                val outputRegister = Interpreter.YMM_REGISTERS.first()
+                emitStore(assembler, storage.field.address, vectorSize.byteSize) { baseRegister ->
+                    assembler.vmovaps( AddressExpression256(baseRegister), outputRegister)
+                }
+            }
+            VectorSize.BITS_512 -> TODO()
+        }
+    }
+
+    override fun get(programIndex: Int, outputIndex: Int, elementIndex: Int): Float {
+        return getFloat(programIndex, outputIndex, elementIndex)
+    }
+
+    private fun getFloat(programIndex: Int, outputIndex: Int, elementIndex: Int): Float {
+        return storage.field.getFloat(programIndex, outputIndex, elementIndex)
+    }
+
+    override fun get(programIndex: Int, outputIndex: Int): Array<Float> {
+        return Array(vectorSize.byteSize / 4) {
+            storage.field.getFloat(programIndex, outputIndex, it)
+        }
+    }
+
+    override fun emitStore(assembler: Assembler) {
+        emitSingleFloatStore(assembler)
+    }
+}
+
+
+class DoubleVectorProgramSetOutput(programSet: ProgramSet, programSetInput: ProgramSetInput, vectorSize: VectorSize) : VectorProgramSetOutput<Double>(programSet, programSetInput, vectorSize) {
+
+    private fun emitDoubleFloatStore(assembler: Assembler) {
+        when(vectorSize) {
+            VectorSize.BITS_64  -> throw IllegalArgumentException("invalid vector size $vectorSize")
+            VectorSize.BITS_128 -> {
+                val outputRegister = Interpreter.XMM_REGISTERS.first()
+                emitStore(assembler, storage.field.address, vectorSize.byteSize) { baseRegister ->
+                    if (VmovapdXmmXmmm128.isSupported()) {
+                        assembler.vmovapd(AddressExpression128(baseRegister), outputRegister)
+                    } else {
+                        assembler.movapd(AddressExpression128(baseRegister), outputRegister)
+                    }
+                }
+            }
+            VectorSize.BITS_256 -> {
+                val outputRegister = Interpreter.YMM_REGISTERS.first()
+                emitStore(assembler, storage.field.address, vectorSize.byteSize) { baseRegister ->
+                    assembler.vmovapd( AddressExpression256(baseRegister), outputRegister)
+                }
+            }
+            VectorSize.BITS_512 -> TODO()
+        }
+    }
+
+    override fun get(programIndex: Int, outputIndex: Int, elementIndex: Int): Double {
+        return getDouble(programIndex, outputIndex, elementIndex)
+    }
+
+    private fun getDouble(programIndex: Int, outputIndex: Int, elementIndex: Int): Double {
+        return storage.field.getDouble(programIndex, outputIndex, elementIndex)
+    }
+
+    override fun get(programIndex: Int, outputIndex: Int): Array<Double> {
+        return Array(vectorSize.byteSize / 8) {
+            storage.field.getDouble(programIndex, outputIndex, it)
+        }
+    }
+
+    override fun emitStore(assembler: Assembler) {
+        emitDoubleFloatStore(assembler)
+    }
+}

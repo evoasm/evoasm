@@ -740,7 +740,7 @@ class Interpreter(val programSet: ProgramSet,
 
 
 class ProgramSet(val size: Int, val programSize: Int) {
-    private val actualProgramSize = programSize + 1
+    internal val actualProgramSize = programSize + 1
     val instructionCount = size * actualProgramSize
     private val codeBuffer = NativeBuffer((instructionCount.toLong() + 1) * UShort.SIZE_BYTES, CodeModel.LARGE)
     internal val byteBuffer = codeBuffer.byteBuffer
@@ -762,13 +762,36 @@ class ProgramSet(val size: Int, val programSize: Int) {
     }
 
     operator fun set(programIndex: Int, instructionIndex: Int, instruction: InterpreterInstruction) {
-        val offset = (programIndex * actualProgramSize + Math.min(programSize - 1, instructionIndex)) * Short.SIZE_BYTES
+        val offset = calculateOffset(programIndex, instructionIndex)
         byteBuffer.putShort(offset, instruction.index.toShort())
     }
 
+    internal inline fun transform(programIndex: Int, block: (InterpreterInstruction) -> InterpreterInstruction)  {
+        val programOffset = programIndex * actualProgramSize * Short.SIZE_BYTES
+        for (i in 0 until programSize) {
+            val offset = programOffset + i * Short.SIZE_BYTES
+            val interpreterInstruction = InterpreterInstruction(byteBuffer.getShort(offset).toUShort())
+            byteBuffer.putShort(offset, block(interpreterInstruction).index.toShort())
+        }
+    }
+
     operator fun get(programIndex: Int, instructionIndex: Int): InterpreterInstruction {
-        val offset = (programIndex * actualProgramSize + Math.min(programSize - 1, instructionIndex)) * Short.SIZE_BYTES
+        val offset = calculateOffset(programIndex, instructionIndex)
         return InterpreterInstruction(byteBuffer.getShort(offset).toUShort())
+    }
+
+    private fun calculateOffset(programIndex: Int, instructionIndex: Int): Int {
+        return (programIndex * actualProgramSize + Math.min(programSize - 1, instructionIndex)) * Short.SIZE_BYTES
+    }
+
+    fun copyProgram(fromProgramIndex: Int, toProgramIndex: Int) {
+        val fromOffset = fromProgramIndex * actualProgramSize * Short.SIZE_BYTES
+        val toOffset = toProgramIndex * actualProgramSize * Short.SIZE_BYTES
+
+        for (i in 0 until actualProgramSize) {
+            val iOffset = i * Short.SIZE_BYTES
+            byteBuffer.putShort(toOffset + iOffset, byteBuffer.getShort(fromOffset + iOffset))
+        }
     }
 }
 

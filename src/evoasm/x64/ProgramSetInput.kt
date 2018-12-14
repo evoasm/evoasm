@@ -162,13 +162,14 @@ abstract class VectorProgramSetInput<T : Number>(size: Int, arity: Int, val vect
             VectorSize.BITS_512 -> TODO()
         }
     }
+
 }
 
 class ByteVectorProgramSetInput(size: Int, arity: Int, vectorSize: VectorSize) : VectorProgramSetInput<Byte>(size, arity, vectorSize)  {
 
     override fun set(rowIndex: Int, columnIndex: Int, values: Array<Byte>) {
-        values.forEachIndexed { index, byte ->
-            setByte(rowIndex, columnIndex, index, byte)
+        values.forEachIndexed { index, value ->
+            setByte(rowIndex, columnIndex, index, value)
         }
     }
 
@@ -182,6 +183,152 @@ class ByteVectorProgramSetInput(size: Int, arity: Int, vectorSize: VectorSize) :
 
     override fun emitLoad(assembler: Assembler) {
         emitIntegerLoad(assembler)
+    }
+}
+
+class IntVectorProgramSetInput(size: Int, arity: Int, vectorSize: VectorSize) : VectorProgramSetInput<Int>(size, arity, vectorSize)  {
+
+    override fun set(rowIndex: Int, columnIndex: Int, values: Array<Int>) {
+        values.forEachIndexed { index, value ->
+            setInt(rowIndex, columnIndex, index, value)
+        }
+    }
+
+    override fun set(rowIndex: Int, columnIndex: Int, elementIndex: Int, value: Int) {
+        setInt(rowIndex, columnIndex, elementIndex, value)
+    }
+
+    fun setInt(rowIndex: Int, columnIndex: Int, elementIndex: Int, value: Int) {
+        storage.field.setInt(rowIndex, columnIndex, elementIndex, value)
+    }
+
+    override fun emitLoad(assembler: Assembler) {
+        emitIntegerLoad(assembler)
+    }
+
+}
+
+class ShortVectorProgramSetInput(size: Int, arity: Int, vectorSize: VectorSize) : VectorProgramSetInput<Short>(size, arity, vectorSize)  {
+
+    override fun set(rowIndex: Int, columnIndex: Int, values: Array<Short>) {
+        values.forEachIndexed { index, value ->
+            setShort(rowIndex, columnIndex, index, value)
+        }
+    }
+
+    override fun set(rowIndex: Int, columnIndex: Int, elementIndex: Int, value: Short) {
+        setShort(rowIndex, columnIndex, elementIndex, value)
+    }
+
+    fun setShort(rowIndex: Int, columnIndex: Int, elementIndex: Int, value: Short) {
+        storage.field.setShort(rowIndex, columnIndex, elementIndex, value)
+    }
+
+    override fun emitLoad(assembler: Assembler) {
+        emitIntegerLoad(assembler)
+    }
+}
+
+class LongVectorProgramSetInput(size: Int, arity: Int, vectorSize: VectorSize) : VectorProgramSetInput<Long>(size, arity, vectorSize)  {
+
+    override fun set(rowIndex: Int, columnIndex: Int, values: Array<Long>) {
+        values.forEachIndexed { index, value ->
+            setLong(rowIndex, columnIndex, index, value)
+        }
+    }
+
+    override fun set(rowIndex: Int, columnIndex: Int, elementIndex: Int, value: Long) {
+        setLong(rowIndex, columnIndex, elementIndex, value)
+    }
+
+    fun setLong(rowIndex: Int, columnIndex: Int, elementIndex: Int, value: Long) {
+        storage.field.setLong(rowIndex, columnIndex, elementIndex, value)
+    }
+
+    override fun emitLoad(assembler: Assembler) {
+        emitIntegerLoad(assembler)
+    }
+}
+
+
+class FloatVectorProgramSetInput(size: Int, arity: Int, vectorSize: VectorSize) : VectorProgramSetInput<Float>(size, arity, vectorSize)  {
+    private fun emitSingleFloatLoad(assembler: Assembler) {
+        when(vectorSize) {
+            VectorSize.BITS_128 -> {
+                emitLoad(assembler, storage.field.address, Interpreter.XMM_REGISTERS, vectorSize.byteSize) { register, baseRegister ->
+                    if (VmovapsXmmXmmm128.isSupported()) {
+                        assembler.vmovaps(register, AddressExpression128(baseRegister))
+                    } else {
+                        assembler.movaps(register, AddressExpression128(baseRegister))
+                    }
+                }
+            }
+            VectorSize.BITS_256 ->
+                emitLoad(assembler, storage.field.address, Interpreter.YMM_REGISTERS, vectorSize.byteSize) { register, baseRegister ->
+                    assembler.vmovaps(register, AddressExpression256(baseRegister))
+                }
+            VectorSize.BITS_512 -> TODO()
+            else -> throw IllegalArgumentException("invalid vector size $vectorSize")
+        }
+    }
+
+    override fun set(rowIndex: Int, columnIndex: Int, values: Array<Float>) {
+        values.forEachIndexed { index, byte ->
+            setFloat(rowIndex, columnIndex, index, byte)
+        }
+    }
+
+    override fun set(rowIndex: Int, columnIndex: Int, elementIndex: Int, value: Float) {
+        setFloat(rowIndex, columnIndex, elementIndex, value)
+    }
+
+    fun setFloat(rowIndex: Int, columnIndex: Int, elementIndex: Int, value: Float) {
+        storage.field.setFloat(rowIndex, columnIndex, elementIndex, value)
+    }
+
+    override fun emitLoad(assembler: Assembler) {
+        emitSingleFloatLoad(assembler)
+    }
+
+}
+
+class DoubleVectorProgramSetInput(size: Int, arity: Int, vectorSize: VectorSize) : VectorProgramSetInput<Double>(size, arity, vectorSize)  {
+    private fun emitSingleDoubleLoad(assembler: Assembler) {
+        when(vectorSize) {
+            VectorSize.BITS_128 -> {
+                emitLoad(assembler, storage.field.address, Interpreter.XMM_REGISTERS, vectorSize.byteSize) { register, baseRegister ->
+                    if (VmovapdXmmXmmm128.isSupported()) {
+                        assembler.vmovapd(register, AddressExpression128(baseRegister))
+                    } else {
+                        assembler.movapd(register, AddressExpression128(baseRegister))
+                    }
+                }
+            }
+            VectorSize.BITS_256 ->
+                emitLoad(assembler, storage.field.address, Interpreter.YMM_REGISTERS, vectorSize.byteSize) { register, baseRegister ->
+                    assembler.vmovapd(register, AddressExpression256(baseRegister))
+                }
+            VectorSize.BITS_512 -> TODO()
+            else -> throw IllegalArgumentException("invalid vector size $vectorSize")
+        }
+    }
+
+    override fun set(rowIndex: Int, columnIndex: Int, values: Array<Double>) {
+        values.forEachIndexed { index, byte ->
+            setDouble(rowIndex, columnIndex, index, byte)
+        }
+    }
+
+    override fun set(rowIndex: Int, columnIndex: Int, elementIndex: Int, value: Double) {
+        setDouble(rowIndex, columnIndex, elementIndex, value)
+    }
+
+    fun setDouble(rowIndex: Int, columnIndex: Int, elementIndex: Int, value: Double) {
+        storage.field.setDouble(rowIndex, columnIndex, elementIndex, value)
+    }
+
+    override fun emitLoad(assembler: Assembler) {
+        emitSingleDoubleLoad(assembler)
     }
 
 }

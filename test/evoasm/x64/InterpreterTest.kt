@@ -112,16 +112,17 @@ internal class InterpreterTest {
     fun addSubByteVector() {
         val programSize = 10
         val programInput = ByteVectorProgramSetInput(1, 3, VectorSize.BITS_256)
-        val expectedOutput = Array(programInput.vectorSize.byteSize) { ((it % 4) * programSize / 2).toByte() }
-        programInput[0, 0] = Array(programInput.vectorSize.byteSize){0.toByte()}
-        programInput[0, 1] = Array(programInput.vectorSize.byteSize){0.toByte()}
-        programInput[0, 2] = Array(programInput.vectorSize.byteSize){(it % 4).toByte()}
-        val options = InterpreterOptions(instructions = InstructionGroup.ARITHMETIC_B_AVX_YMM_INSTRUCTIONS.instructions, moveInstructions = listOf(VmovapdYmmYmmm256))
+        val elementCount = programInput.vectorSize.byteSize
+        val expectedOutput = Array(elementCount) { ((it % 4) * programSize / 2).toByte() }
+        programInput[0, 0] = Array(elementCount){0.toByte()}
+        programInput[0, 1] = Array(elementCount){0.toByte()}
+        programInput[0, 2] = Array(elementCount){(it % 4).toByte()}
+        val options = InterpreterOptions(instructions = InstructionGroup.ARITHMETIC_B_AVX_YMM_INSTRUCTIONS.instructions, moveInstructions = listOf(VmovdqaYmmYmmm256))
         val programSet = ProgramSet(2, programSize)
         val programSetOutput = ByteVectorProgramSetOutput(programSet, programInput, VectorSize.BITS_256)
         val interpreter = Interpreter(programSet, programInput, programSetOutput, options = options)
 
-        val interpreterMoveInstruction = interpreter.getInterpreterMoveInstruction(VmovapdYmmYmmm256, YmmRegister.YMM1, YmmRegister.YMM0)!!
+        val interpreterMoveInstruction = interpreter.getInterpreterMoveInstruction(VmovdqaYmmYmmm256, YmmRegister.YMM1, YmmRegister.YMM0)!!
 
         for (i in 0 until programSet.programSize step 2) {
             programSet[0, i] = interpreter.getInterpreterInstruction(VpaddbYmmYmmYmmm256)!!
@@ -143,7 +144,88 @@ internal class InterpreterTest {
 
         run {
             assertEquals(expectedOutput.toList(), programSetOutput[0, 0].toList())
-            assertEquals<List<Byte>>(expectedOutput.map{(-it).toByte()}, programSetOutput.get(1, 0).toList())
+            assertEquals(expectedOutput.map{(-it).toByte()}, programSetOutput.get(1, 0).toList())
+        }
+    }
+
+
+    @Test
+    fun addSubIntVector() {
+        val programSize = 10_000_000
+        val programInput = IntVectorProgramSetInput(1, 3, VectorSize.BITS_256)
+        val elementCount = programInput.vectorSize.byteSize / Int.SIZE_BYTES
+        val expectedOutput = Array(elementCount) { ((it % 4) * programSize / 2) }
+        programInput[0, 0] = Array(elementCount){ 0 }
+        programInput[0, 1] = Array(elementCount){ 0 }
+        programInput[0, 2] = Array(elementCount){ (it % 4) }
+        val options = InterpreterOptions(instructions = InstructionGroup.ARITHMETIC_D_AVX_YMM_INSTRUCTIONS.instructions, moveInstructions = listOf(VmovdqaYmmYmmm256))
+        val programSet = ProgramSet(2, programSize)
+        val programSetOutput = IntVectorProgramSetOutput(programSet, programInput, VectorSize.BITS_256)
+        val interpreter = Interpreter(programSet, programInput, programSetOutput, options = options)
+
+        val interpreterMoveInstruction = interpreter.getInterpreterMoveInstruction(VmovdqaYmmYmmm256, YmmRegister.YMM1, YmmRegister.YMM0)!!
+
+        for (i in 0 until programSet.programSize step 2) {
+            programSet[0, i] = interpreter.getInterpreterInstruction(VpadddYmmYmmYmmm256)!!
+            programSet[0, i + 1] = interpreterMoveInstruction
+        }
+
+        for (i in 0 until programSet.programSize step 2) {
+            programSet[1, i] = interpreter.getInterpreterInstruction(VpsubdYmmYmmYmmm256)!!
+            programSet[1, i + 1] = interpreterMoveInstruction
+        }
+
+        run {
+            val output = programSetOutput[0, 0]
+            assertNotEquals(expectedOutput, output)
+        }
+
+        val measurements = interpreter.runAndMeasure()
+        println(measurements)
+
+        run {
+            assertEquals(expectedOutput.toList(), programSetOutput[0, 0].toList())
+            assertEquals(expectedOutput.map{ (-it) }, programSetOutput.get(1, 0).toList())
+        }
+    }
+
+    @Test
+    fun addSubFloatVector() {
+        val programSize = 1000
+        val programInput = FloatVectorProgramSetInput(1, 3, VectorSize.BITS_256)
+        val elementCount = programInput.vectorSize.byteSize / 4
+        val expectedOutput = Array(elementCount) { ((it % 4) * programSize / 2).toFloat() }
+        programInput[0, 0] = Array(elementCount){0.toFloat()}
+        programInput[0, 1] = Array(elementCount){0.toFloat()}
+        programInput[0, 2] = Array(elementCount){(it % 4).toFloat()}
+        val options = InterpreterOptions(instructions = InstructionGroup.ARITHMETIC_PS_AVX_YMM_INSTRUCTIONS.instructions, moveInstructions = listOf(VmovapsYmmYmmm256))
+        val programSet = ProgramSet(2, programSize)
+        val programSetOutput = FloatVectorProgramSetOutput(programSet, programInput, VectorSize.BITS_256)
+        val interpreter = Interpreter(programSet, programInput, programSetOutput, options = options)
+
+        val interpreterMoveInstruction = interpreter.getInterpreterMoveInstruction(VmovapsYmmYmmm256, YmmRegister.YMM1, YmmRegister.YMM0)!!
+
+        for (i in 0 until programSet.programSize step 2) {
+            programSet[0, i] = interpreter.getInterpreterInstruction(VaddpsYmmYmmYmmm256)!!
+            programSet[0, i + 1] = interpreterMoveInstruction
+        }
+
+        for (i in 0 until programSet.programSize step 2) {
+            programSet[1, i] = interpreter.getInterpreterInstruction(VsubpsYmmYmmYmmm256)!!
+            programSet[1, i + 1] = interpreterMoveInstruction
+        }
+
+        run {
+            val output = programSetOutput[0, 0]
+            assertNotEquals(expectedOutput, output)
+        }
+
+        val measurements = interpreter.runAndMeasure()
+        println(measurements)
+
+        run {
+            assertEquals(expectedOutput.toList(), programSetOutput[0, 0].toList())
+            assertEquals(expectedOutput.map{(-it + 0f).toFloat()}, programSetOutput.get(1, 0).toList())
         }
     }
 
