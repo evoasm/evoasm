@@ -15,14 +15,14 @@ inline class InterpreterInstruction(val index: UShort) {
 
 
 class Interpreter(val programSet: ProgramSet,
-                  val setInput: ProgramSetInput,
+                  val input: ProgramSetInput,
                   val output: ProgramSetOutput,
                   val options: InterpreterOptions = InterpreterOptions.DEFAULT) {
 
     companion object {
         fun emitMultiplication(assembler: Assembler, register: GpRegister64, multiplier: Int) {
             when {
-                multiplier % 2 == 0 -> {
+                Integer.bitCount(multiplier) == 1 -> {
                     val shiftSize = log2(multiplier).toByte()
                     assembler.sal(register, shiftSize)
                 }
@@ -410,7 +410,7 @@ class Interpreter(val programSet: ProgramSet,
     }
 
     fun getInterpreterInstruction(opcode: Int): InterpreterInstruction {
-        require(opcode < instructionCounter, { "invalid opcode $opcode (max opcode is $instructionCounter)" })
+        require(opcode < instructionCounter) { "invalid opcode $opcode (max opcode is $instructionCounter)" }
         return InterpreterInstruction(instructions[opcode + INTERNAL_INSTRUCTION_COUNT].toUShort());
     }
 
@@ -463,7 +463,7 @@ class Interpreter(val programSet: ProgramSet,
             emitInstruction {
                 // store result
                 emitOutputStore()
-                if(setInput.size != 1) {
+                if(input.size != 1) {
                     val inputCounterSubRegister = COUNTERS_REGISTER.subRegister16
                     // decrease input count
                     dec(inputCounterSubRegister)
@@ -477,7 +477,7 @@ class Interpreter(val programSet: ProgramSet,
                                 //inc(COUNTERS_REGISTER)
 
                                 // reset input counter
-                                mov(inputCounterSubRegister, setInput.size.toShort())
+                                mov(inputCounterSubRegister, input.size.toShort())
                             }
                               )
                 } else {
@@ -490,7 +490,7 @@ class Interpreter(val programSet: ProgramSet,
                 sahfAh()
 
                 // load inputs
-                setInput.emitLoad(assembler)
+                input.emitLoad(assembler)
 
             }
         }
@@ -525,12 +525,12 @@ class Interpreter(val programSet: ProgramSet,
             emitRflagsReset()
             mov(IP_REGISTER, programSet.address.toLong())
             firstInstructionLinkPoint = mov(FIRST_INSTRUCTION_ADDRESS_REGISTER)
-            if(setInput.size == 1) {
+            if(input.size == 1) {
                 xor(COUNTERS_REGISTER, COUNTERS_REGISTER)
             } else {
-                mov(COUNTERS_REGISTER, setInput.size)
+                mov(COUNTERS_REGISTER, input.size)
             }
-            setInput.emitLoad(assembler)
+            input.emitLoad(assembler)
             emitDispatch()
             align(INSTRUCTION_ALIGNMENT)
         }
@@ -731,13 +731,25 @@ class Interpreter(val programSet: ProgramSet,
         }.toDouble()
 
         val elapsedSeconds = nanoTime / 1E9
-        val instructionsPerSecond = (programSet.instructionCount * setInput.size) / elapsedSeconds
+        val instructionsPerSecond = (programSet.instructionCount * input.size) / elapsedSeconds
         return RunMeasurements(elapsedSeconds, instructionsPerSecond)
     }
 
 
 }
 
+
+class Program(val size: Int) {
+    private val code = UShortArray(size)
+
+    operator fun set(index: Int, interpreterInstruction: InterpreterInstruction) {
+        code[index] = interpreterInstruction.index
+    }
+
+    operator fun get(index: Int): InterpreterInstruction {
+        return InterpreterInstruction(code[index])
+    }
+}
 
 class ProgramSet(val size: Int, val programSize: Int) {
     internal val actualProgramSize = programSize + 1
@@ -766,13 +778,20 @@ class ProgramSet(val size: Int, val programSize: Int) {
         byteBuffer.putShort(offset, instruction.index.toShort())
     }
 
-    internal inline fun transform(programIndex: Int, block: (InterpreterInstruction) -> InterpreterInstruction)  {
-        val programOffset = programIndex * actualProgramSize * Short.SIZE_BYTES
-        for (i in 0 until programSize) {
-            val offset = programOffset + i * Short.SIZE_BYTES
-            val interpreterInstruction = InterpreterInstruction(byteBuffer.getShort(offset).toUShort())
-            byteBuffer.putShort(offset, block(interpreterInstruction).index.toShort())
+    interface Mutator {
+        fun mutate(interpreterInstruction: InterpreterInstruction): InterpreterInstruction
+    }
+
+    internal fun mutate(mutator: Mutator)  {
+        for(i in 0 until size) {
+            val programOffset = i * actualProgramSize * Short.SIZE_BYTES
+            for (j in 0 until programSize) {
+                val offset = programOffset + j * Short.SIZE_BYTES
+                val interpreterInstruction = InterpreterInstruction(byteBuffer.getShort(offset).toUShort())
+                byteBuffer.putShort(offset, mutator.mutate(interpreterInstruction).index.toShort())
+            }
         }
+
     }
 
     operator fun get(programIndex: Int, instructionIndex: Int): InterpreterInstruction {
@@ -784,13 +803,22 @@ class ProgramSet(val size: Int, val programSize: Int) {
         return (programIndex * actualProgramSize + Math.min(programSize - 1, instructionIndex)) * Short.SIZE_BYTES
     }
 
+    fun copyProgramTo(programIndex: Int, program: Program) {
+        val baseOffset = programIndex * actualProgramSize * Short.SIZE_BYTES
+
+        for (i in 0 until actualProgramSize) {
+            val relativeOffset = i * Short.SIZE_BYTES
+            program[i] = InterpreterInstruction(byteBuffer.getShort(baseOffset + relativeOffset).toUShort())
+        }
+    }
+
     fun copyProgram(fromProgramIndex: Int, toProgramIndex: Int) {
         val fromOffset = fromProgramIndex * actualProgramSize * Short.SIZE_BYTES
         val toOffset = toProgramIndex * actualProgramSize * Short.SIZE_BYTES
 
         for (i in 0 until actualProgramSize) {
-            val iOffset = i * Short.SIZE_BYTES
-            byteBuffer.putShort(toOffset + iOffset, byteBuffer.getShort(fromOffset + iOffset))
+            val relativeOffset = i * Short.SIZE_BYTES
+            byteBuffer.putShort(toOffset + relativeOffset, byteBuffer.getShort(fromOffset + relativeOffset))
         }
     }
 }

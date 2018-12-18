@@ -13,7 +13,7 @@ abstract class ProgramSetOutput(programSet: ProgramSet, programSetInput: Program
     internal abstract fun emitStore(assembler: Assembler)
 
     protected fun emitStore(assembler: Assembler, address: Address, elementSize: Int, block: (GpRegister64) -> Unit) {
-        require(elementSize % 2 == 0)
+        require(Integer.bitCount(elementSize) == 1)
 
         with(assembler) {
             mov(Interpreter.SCRATCH_REGISTER1, Interpreter.COUNTERS_REGISTER)
@@ -90,12 +90,16 @@ class DoubleProgramSetOutput(programSet: ProgramSet, programSetInput: ProgramSet
         storage.allocate()
     }
 
-    fun getDouble(programIndex: Int, columnIndex: Int): Double {
-        return storage.field.get(programIndex, columnIndex)
+    fun getDouble(programIndex: Int, inputIndex: Int): Double {
+        return storage.field.get(programIndex, inputIndex)
     }
 
-    override operator fun get(programIndex: Int, outputIndex: Int): Double {
-        return getDouble(programIndex, outputIndex)
+    fun setDouble(programIndex: Int, inputIndex: Int, value: Double) {
+        return storage.field.set(programIndex, inputIndex, value)
+    }
+
+    override operator fun get(programIndex: Int, inputIndex: Int): Double {
+        return getDouble(programIndex, inputIndex)
     }
 
     override fun emitStore(assembler: Assembler) {
@@ -104,6 +108,16 @@ class DoubleProgramSetOutput(programSet: ProgramSet, programSetInput: ProgramSet
             assembler.movDouble(AddressExpression64(it), outputRegister)
         }
     }
+
+    override fun toString(): String {
+        val elementCount = storage.field.dimensions.fold(1) { acc: Int, value: Int ->
+            acc * value
+        }
+        val doubleBuffer = buffer.asDoubleBuffer()
+        return DoubleArray(elementCount) { doubleBuffer.get(it)}.contentToString()
+    }
+
+
 }
 
 abstract class VectorProgramSetOutput<T : Number>(programSet: ProgramSet, programSetInput: ProgramSetInput, val vectorSize: VectorSize) : ProgramSetOutput(programSet, programSetInput) {

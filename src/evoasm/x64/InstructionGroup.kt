@@ -1275,6 +1275,7 @@ enum class InstructionGroup(vararg instructions: Instruction) {
             VpminsdYmmYmmYmmm256,
             VpabsdYmmYmmm256
                                           ),
+
     ARITHMETIC_Q_SSE_XMM_INSTRUCTIONS(
             PsubqXmmXmmm128
                                          ),
