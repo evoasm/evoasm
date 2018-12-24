@@ -114,17 +114,19 @@ abstract class Population<T: Number>(sampleSet: AbstractSampleSet<T>, val lossFu
 
         println("-------------------------")
         println(bestLoss)
-        println(losses.contentToString())
+        println("AVGLOSS: ${losses.filter { it.isFinite() }.average()}")
+//        println("LOSSES: ${losses.toList()}")
     }
 
 
-    private var bestLoss: Float = 0f
+    var bestLoss: Float = Float.POSITIVE_INFINITY
+        private set
 
     private fun updateBest() {
         var topLoss = Float.POSITIVE_INFINITY
         var topProgramIndex = Int.MAX_VALUE
 
-        for (i in 0 until populationSize) {
+        for (i in losses.indices) {
             val programLoss = losses[i]
             if(programLoss < topLoss) {
                 topLoss = programLoss
@@ -151,10 +153,8 @@ abstract class Population<T: Number>(sampleSet: AbstractSampleSet<T>, val lossFu
             }
         }
 
-        for(i in 0 until populationSize) {
-            mutateProgram(i)
+        mutatePrograms()
             //!evoasm_deme_mutate_kernel(deme, i);
-        }
 
 //        while(true) {
 //            while(survivorIndex < populationSize && wonTournamentCounts[survivorIndex] <= 1) survivorIndex++;
@@ -180,12 +180,18 @@ abstract class Population<T: Number>(sampleSet: AbstractSampleSet<T>, val lossFu
 
     }
 
-    protected val maxInstructionOpcode = options.interpreterOptions.instructions.size
+//    protected val maxInstructionOpcode = options.interpreterOptions.instructions.size
 
-    private fun mutateProgram(programIndex: Int) {
-        programSet.transform(programIndex) {
-            val opcode = random.nextInt(0, maxInstructionOpcode)
-            interpreter.getInterpreterInstruction(opcode)
+    private fun mutatePrograms() {
+        val maxOpcodeIndex = interpreter.maxOpcodeIndex
+        val mutationRate = options.mutationRate
+        programSet.transform { interpreterOpcode: InterpreterOpcode, programIndex: Int, instructionIndex: Int ->
+            if(random.nextFloat() < mutationRate) {
+                val opcodeIndex = random.nextInt(0, maxOpcodeIndex)
+                interpreter.getOpcode(opcodeIndex)
+            } else {
+                interpreterOpcode
+            }
         }
     }
 
@@ -209,10 +215,10 @@ class DoublePopulation(val sampleSet: DoubleSampleSet,
     }
 
     private fun seed() {
-
+        val maxOpcodeIndex = interpreter.maxOpcodeIndex
         for (i in 0 until programSet.size) {
             for(j in 0 until programSet.programSize) {
-                val interpreterInstruction = interpreter.getInterpreterInstruction(random.nextInt(maxInstructionOpcode))
+                val interpreterInstruction = interpreter.getOpcode(random.nextInt(maxOpcodeIndex))
                 programSet[i, j] = interpreterInstruction
             }
         }
@@ -269,18 +275,21 @@ class PopulationOptions(val size: Int,
                         val tournamentSize: Int,
                         val seed: Long,
                         val programSize: Int,
-                        val interpreterOptions: InterpreterOptions) {
+                        val interpreterOptions: InterpreterOptions,
+                        val mutationRate: Float) {
 
 }
 
 fun main() {
 
     val options = PopulationOptions(
-            10_000,
-            10,
-            Random.nextLong(),//1234567,
+            100,
             5,
-            InterpreterOptions(instructions = InstructionGroup.ARITHMETIC_SD_AVX_XMM_INSTRUCTIONS.instructions, moveInstructions = listOf(VmovapdYmmYmmm256))
+            Random.nextLong(),//1234567,
+            10,
+            InterpreterOptions(instructions = InstructionGroup.ARITHMETIC_SD_AVX_XMM_INSTRUCTIONS.instructions,
+                               moveInstructions = listOf(VmovapdYmmYmmm256)),
+            0.01f
                                    )
 
     val lossFunction = L1Norm()
@@ -301,9 +310,13 @@ fun main() {
 
 
     val population = DoublePopulation(sampleSet, lossFunction, options)
-    repeat(1000) {
+    repeat(15_000) {
         population.evaluate()
         population.nextGeneration()
+        if(population.bestLoss == 0f) {
+            println("found 0, done")
+            return@repeat
+        }
     }
 
 }

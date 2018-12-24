@@ -2,12 +2,18 @@ package evoasm.x64
 
 import kasm.x64.*
 import org.junit.jupiter.api.Test
-
+import kasm.x64.GpRegister64.*
+import kasm.x64.XmmRegister.*
+import kasm.x64.YmmRegister.*
 
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 
 internal class InterpreterTest {
+
+    private fun <T> operandRegisters(size: Int, registers: List<T>) : List<List<T>> {
+        return List(size){ listOf(registers[it]) }
+    }
 
     @Test
     fun runAllInstructions() {
@@ -17,19 +23,30 @@ internal class InterpreterTest {
         val defaultOptions = InterpreterOptions.DEFAULT
         val instructionCount = defaultOptions.instructions.size
         println(defaultOptions.instructions.size)
-        val options = InterpreterOptions(instructions = defaultOptions.instructions.take(instructionCount), moveInstructions = defaultOptions.moveInstructions)
+        val options = InterpreterOptions(instructions = defaultOptions.instructions.take(instructionCount),
+                                         moveInstructions = defaultOptions.moveInstructions,
+                                         gp8OperandRegisters = operandRegisters(3, Interpreter.GP_REGISTERS.map{it.subRegister8}),
+                                         gp16OperandRegisters = operandRegisters(3, Interpreter.GP_REGISTERS.map{it.subRegister16}),
+                                         gp32OperandRegisters = operandRegisters(3, Interpreter.GP_REGISTERS.map{it.subRegister32}),
+                                         gp64OperandRegisters = operandRegisters(3, Interpreter.GP_REGISTERS),
+                                         mmOperandRegisters = operandRegisters(3, Interpreter.MM_REGISTERS),
+                                         xmmOperandRegisters = operandRegisters(4, Interpreter.XMM_REGISTERS),
+                                         ymmOperandRegisters = operandRegisters(4, Interpreter.YMM_REGISTERS),
+                                         compressOpcodes = false
+                                         )
         println(options.instructions.last())
         val programSet = ProgramSet(1000, options.instructions.size)
         val programSetOutput = LongProgramSetOutput(programSet, programInput)
         val interpreter = Interpreter(programSet, programInput, programSetOutput, options = options)
         for(i in 0 until programSet.size) {
             for (j in 0 until programSet.programSize) {
-                programSet[i, j] = interpreter.getInterpreterInstruction(j)
+                programSet[i, j] = interpreter.getOpcode(j)
             }
         }
 
         val measurements = interpreter.runAndMeasure()
         println(measurements)
+        println(interpreter.statistics)
 
         println("Output: ${programSetOutput[0, 0]}")
     }
@@ -43,12 +60,15 @@ internal class InterpreterTest {
         programInput[0, 0] = 0x0L
         programInput[0, 1] = 0x1L
         //val options = InterpreterOptions.DEFAULT
-        val options = InterpreterOptions(moveInstructions = emptyList(), instructions = InstructionGroup.ARITHMETIC_GP64_INSTRUCTIONS.instructions)
+        val options = InterpreterOptions(instructions = InstructionGroup.ARITHMETIC_GP64_INSTRUCTIONS.instructions,
+                                         moveInstructions = emptyList(),
+                                         gp64OperandRegisters = operandRegisters(3, Interpreter.GP_REGISTERS),
+                                         compressOpcodes = true)
         val programSet = ProgramSet(1, programSize)
         val programSetOutput = LongProgramSetOutput(programSet, programInput)
         val interpreter = Interpreter(programSet, programInput, programSetOutput, options = options)
         for (j in 0 until programSet.programSize) {
-            programSet[0, j] = interpreter.getInterpreterInstruction(AddRm64R64)!!
+            programSet[0, j] = interpreter.getOpcode(AddRm64R64, RAX, RBX)!!
         }
 
         run {
@@ -87,11 +107,11 @@ internal class InterpreterTest {
         val interpreter = Interpreter(programSet, programInput, programSetOutput, options = options)
 
         for (i in 0 until programSet.programSize) {
-            programSet[0, i] = interpreter.getInterpreterInstruction(AddRm64R64)!!
+            programSet[0, i] = interpreter.getOpcode(AddRm64R64, RAX, RBX)!!
         }
 
         for (i in 0 until programSet.programSize) {
-            programSet[1, i] = interpreter.getInterpreterInstruction(SubRm64R64)!!
+            programSet[1, i] = interpreter.getOpcode(SubRm64R64, RAX, RBX)!!
         }
 
         run {
@@ -117,20 +137,21 @@ internal class InterpreterTest {
         programInput[0, 0] = Array(elementCount){0.toByte()}
         programInput[0, 1] = Array(elementCount){0.toByte()}
         programInput[0, 2] = Array(elementCount){(it % 4).toByte()}
-        val options = InterpreterOptions(instructions = InstructionGroup.ARITHMETIC_B_AVX_YMM_INSTRUCTIONS.instructions, moveInstructions = listOf(VmovdqaYmmYmmm256))
+        val options = InterpreterOptions(instructions = InstructionGroup.ARITHMETIC_B_AVX_YMM_INSTRUCTIONS.instructions,
+                                         moveInstructions = listOf(VmovdqaYmmYmmm256))
         val programSet = ProgramSet(2, programSize)
         val programSetOutput = ByteVectorProgramSetOutput(programSet, programInput, VectorSize.BITS_256)
         val interpreter = Interpreter(programSet, programInput, programSetOutput, options = options)
 
-        val interpreterMoveInstruction = interpreter.getInterpreterMoveInstruction(VmovdqaYmmYmmm256, YmmRegister.YMM1, YmmRegister.YMM0)!!
+        val interpreterMoveInstruction = interpreter.getMoveOpcode(VmovdqaYmmYmmm256, YMM1, YMM0)!!
 
         for (i in 0 until programSet.programSize step 2) {
-            programSet[0, i] = interpreter.getInterpreterInstruction(VpaddbYmmYmmYmmm256)!!
+            programSet[0, i] = interpreter.getOpcode(VpaddbYmmYmmYmmm256, YMM0, YMM1, YMM2)!!
             programSet[0, i + 1] = interpreterMoveInstruction
         }
 
         for (i in 0 until programSet.programSize step 2) {
-            programSet[1, i] = interpreter.getInterpreterInstruction(VpsubbYmmYmmYmmm256)!!
+            programSet[1, i] = interpreter.getOpcode(VpsubbYmmYmmYmmm256, YMM0, YMM1, YMM2)!!
             programSet[1, i + 1] = interpreterMoveInstruction
         }
 
@@ -158,20 +179,21 @@ internal class InterpreterTest {
         programInput[0, 0] = Array(elementCount){ 0 }
         programInput[0, 1] = Array(elementCount){ 0 }
         programInput[0, 2] = Array(elementCount){ (it % 4) }
-        val options = InterpreterOptions(instructions = InstructionGroup.ARITHMETIC_D_AVX_YMM_INSTRUCTIONS.instructions, moveInstructions = listOf(VmovdqaYmmYmmm256))
+        val options = InterpreterOptions(instructions = InstructionGroup.ARITHMETIC_D_AVX_YMM_INSTRUCTIONS.instructions,
+                                         moveInstructions = listOf(VmovdqaYmmYmmm256))
         val programSet = ProgramSet(2, programSize)
         val programSetOutput = IntVectorProgramSetOutput(programSet, programInput, VectorSize.BITS_256)
         val interpreter = Interpreter(programSet, programInput, programSetOutput, options = options)
 
-        val interpreterMoveInstruction = interpreter.getInterpreterMoveInstruction(VmovdqaYmmYmmm256, YmmRegister.YMM1, YmmRegister.YMM0)!!
+        val interpreterMoveInstruction = interpreter.getMoveOpcode(VmovdqaYmmYmmm256, YMM1, YMM0)!!
 
         for (i in 0 until programSet.programSize step 2) {
-            programSet[0, i] = interpreter.getInterpreterInstruction(VpadddYmmYmmYmmm256)!!
+            programSet[0, i] = interpreter.getOpcode(VpadddYmmYmmYmmm256, YMM0, YMM1, YMM2)!!
             programSet[0, i + 1] = interpreterMoveInstruction
         }
 
         for (i in 0 until programSet.programSize step 2) {
-            programSet[1, i] = interpreter.getInterpreterInstruction(VpsubdYmmYmmYmmm256)!!
+            programSet[1, i] = interpreter.getOpcode(VpsubdYmmYmmYmmm256, YMM0, YMM1, YMM2)!!
             programSet[1, i + 1] = interpreterMoveInstruction
         }
 
@@ -198,20 +220,21 @@ internal class InterpreterTest {
         programInput[0, 0] = Array(elementCount){0.toFloat()}
         programInput[0, 1] = Array(elementCount){0.toFloat()}
         programInput[0, 2] = Array(elementCount){(it % 4).toFloat()}
-        val options = InterpreterOptions(instructions = InstructionGroup.ARITHMETIC_PS_AVX_YMM_INSTRUCTIONS.instructions, moveInstructions = listOf(VmovapsYmmYmmm256))
+        val options = InterpreterOptions(instructions = InstructionGroup.ARITHMETIC_PS_AVX_YMM_INSTRUCTIONS.instructions,
+                                         moveInstructions = listOf(VmovapsYmmYmmm256))
         val programSet = ProgramSet(2, programSize)
         val programSetOutput = FloatVectorProgramSetOutput(programSet, programInput, VectorSize.BITS_256)
         val interpreter = Interpreter(programSet, programInput, programSetOutput, options = options)
 
-        val interpreterMoveInstruction = interpreter.getInterpreterMoveInstruction(VmovapsYmmYmmm256, YmmRegister.YMM1, YmmRegister.YMM0)!!
+        val interpreterMoveInstruction = interpreter.getMoveOpcode(VmovapsYmmYmmm256, YMM1, YMM0)!!
 
         for (i in 0 until programSet.programSize step 2) {
-            programSet[0, i] = interpreter.getInterpreterInstruction(VaddpsYmmYmmYmmm256)!!
+            programSet[0, i] = interpreter.getOpcode(VaddpsYmmYmmYmmm256, YMM0, YMM1, YMM2)!!
             programSet[0, i + 1] = interpreterMoveInstruction
         }
 
         for (i in 0 until programSet.programSize step 2) {
-            programSet[1, i] = interpreter.getInterpreterInstruction(VsubpsYmmYmmYmmm256)!!
+            programSet[1, i] = interpreter.getOpcode(VsubpsYmmYmmYmmm256, YMM0, YMM1, YMM2)!!
             programSet[1, i + 1] = interpreterMoveInstruction
         }
 
@@ -244,7 +267,7 @@ internal class InterpreterTest {
         val interpreter = Interpreter(programSet, programInput, programSetOutput, options = options)
 
         for (j in 0 until programSet.programSize) {
-            programSet[0, j] = interpreter.getInterpreterInstruction(AddsdXmm0To63Xmmm64)!!
+            programSet[0, j] = interpreter.getOpcode(AddsdXmm0To63Xmmm64, XMM1)!!
         }
 
         run {
@@ -282,11 +305,11 @@ internal class InterpreterTest {
         println("OUTPUT SIZE ${programSetOutput.size}")
 
         for (j in 0 until programSet.programSize) {
-            programSet[0, j] = interpreter.getInterpreterInstruction(AddsdXmm0To63Xmmm64)!!
+            programSet[0, j] = interpreter.getOpcode(AddsdXmm0To63Xmmm64, XMM1)!!
         }
 
         for (j in 0 until programSet.programSize) {
-            programSet[1, j] = interpreter.getInterpreterInstruction(SubsdXmm0To63Xmmm64)!!
+            programSet[1, j] = interpreter.getOpcode(SubsdXmm0To63Xmmm64, XMM1)!!
         }
 
         run {

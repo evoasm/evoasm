@@ -21,12 +21,12 @@ class InstructionFinder<T : Number>(inputArity: Int, vararg values: T) {
 
     init {
         for(i in 0 until programSet.size) {
-            programSet.set(i, 0, interpreter.getInterpreterInstruction(i))
+            programSet.set(i, 0, interpreter.getOpcode(i))
         }
     }
 
     fun find() {
-        val instructions = mutableSetOf<Instruction>()
+        val instructions = mutableSetOf<InterpreterInstruction>()
 
         rows.forEachIndexed { rowIndex, row ->
             for (columnIndex in 0 until programInput.arity) {
@@ -44,7 +44,7 @@ class InstructionFinder<T : Number>(inputArity: Int, vararg values: T) {
                 }
             }
 
-            val instruction = interpreter.getInstruction(programSet.get(i, 0))
+            val instruction = interpreter.getInstruction(programSet.get(i, 0))!!
             instructions.add(instruction)
         }
 
