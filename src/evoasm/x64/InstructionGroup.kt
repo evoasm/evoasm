@@ -1276,6 +1276,13 @@ enum class InstructionGroup(vararg instructions: Instruction) {
             VpabsdYmmYmmm256
                                           ),
 
+
+    ARITHMETIC_PSD_AVX_XMM_INSTRUCTIONS(
+            VpmaxsdXmmXmmXmmm128,
+            VpminsdXmmXmmXmmm128,
+            VpabsdXmmXmmm128
+                                      ),
+
     ARITHMETIC_Q_SSE_XMM_INSTRUCTIONS(
             PsubqXmmXmmm128
                                          ),
@@ -1416,9 +1423,6 @@ enum class InstructionGroup(vararg instructions: Instruction) {
                                       ),
 
     ARITHMETIC_SD_AVX_XMM_INSTRUCTIONS(
-            VpmaxsdXmmXmmXmmm128,
-            VpminsdXmmXmmXmmm128,
-            VpabsdXmmXmmm128,
             VaddsdXmmXmmXmmm64,
             Vfmadd132sdXmmXmmXmmm64,
             Vfmadd213sdXmmXmmXmmm64,
@@ -1462,8 +1466,7 @@ enum class InstructionGroup(vararg instructions: Instruction) {
             VmaxssXmmXmmXmmm32,
             VminssXmmXmmXmmm32,
             VmulssXmmXmmXmmm32,
-            VrcpssXmmXmmXmmm32
-                                      ),
+            VrcpssXmmXmmXmmm32),
 
 
 
@@ -1790,11 +1793,15 @@ enum class InstructionGroup(vararg instructions: Instruction) {
             VpermqYmmYmmm256Imm8
                                   ),
 
-
-
-
     ;
 
+    companion object {
+        val values = values().toList()
+        val all : List<Instruction> = InstructionGroup.values.fold(mutableListOf<Instruction>()) {acc, instructionGroup ->
+                    acc.addAll(instructionGroup.instructions)
+                    acc
+        }
+    }
 
     val instructions: List<Instruction> = instructions.toList()
 }

@@ -1,6 +1,9 @@
 package evoasm.x64
 
+import evoasm.measureTimeSeconds
+import kasm.x64.BitRange
 import kasm.x64.VmovapdYmmYmmm256
+import kasm.x64.XmmRegister
 import kotlin.math.absoluteValue
 import kotlin.random.Random
 
@@ -55,11 +58,14 @@ abstract class Population<T: Number>(sampleSet: AbstractSampleSet<T>, val lossFu
     private val bestProgram = Program(programSet.programSize)
 
     fun nextGeneration() {
-        if(select()) {
-            reproduce()
-        } else {
-            //seed
+        val seconds = measureTimeSeconds {
+            if (select()) {
+                reproduce()
+            } else {
+                //seed
+            }
         }
+        println("Seconds select/reprod $seconds")
     }
 
 
@@ -108,10 +114,16 @@ abstract class Population<T: Number>(sampleSet: AbstractSampleSet<T>, val lossFu
     }
 
     fun evaluate() {
-        interpreter.run()
-        calculateLosses()
-        updateBest()
+        val runS = measureTimeSeconds {
+            interpreter.run()
+        }
 
+        val lossS = measureTimeSeconds {
+            calculateLosses()
+            updateBest()
+        }
+
+        println("$runS $lossS")
         println("-------------------------")
         println(bestLoss)
         println("AVGLOSS: ${losses.filter { it.isFinite() }.average()}")
@@ -138,6 +150,19 @@ abstract class Population<T: Number>(sampleSet: AbstractSampleSet<T>, val lossFu
             programSet.copyProgramTo(topProgramIndex, bestProgram)
             bestLoss = topLoss
         }
+    }
+
+    fun printBest() {
+        bestProgram.forEach {
+            println("${it}: ${interpreter.getInstruction(it)}")
+        }
+
+        println()
+        val ie = IntronEliminator(bestProgram, XmmRegister.XMM0, BitRange.BITS_0_63, interpreter)
+        ie.run().forEach {
+            println("${it}: ${interpreter.getInstruction(it)}")
+        }
+
     }
 
     protected abstract fun calculateLosses()
@@ -284,7 +309,7 @@ fun main() {
 
     val options = PopulationOptions(
             100,
-            5,
+            3,
             Random.nextLong(),//1234567,
             10,
             InterpreterOptions(instructions = InstructionGroup.ARITHMETIC_SD_AVX_XMM_INSTRUCTIONS.instructions,
@@ -310,14 +335,21 @@ fun main() {
 
 
     val population = DoublePopulation(sampleSet, lossFunction, options)
-    repeat(15_000) {
-        population.evaluate()
-        population.nextGeneration()
-        if(population.bestLoss == 0f) {
-            println("found 0, done")
-            return@repeat
+
+    val seconds = measureTimeSeconds {
+
+        for (i in 0 until 35_000) {
+            population.evaluate()
+            population.nextGeneration()
+            if (population.bestLoss == 0f) {
+                println("found 0, done")
+                break
+            }
         }
+        population.printBest()
     }
+
+    println("Found after ${seconds}")
 
 }
 

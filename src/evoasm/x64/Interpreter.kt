@@ -80,82 +80,82 @@ class Interpreter(val programSet: ProgramSet,
             operandRegisterCount = Math.max(operandRegisterCount, index + 1)
         }
         
-        override fun traceWrite(register: GpRegister8, index: Int, range: BitRange?, always: Boolean) {
+        override fun traceWrite(register: GpRegister8, index: Int, range: BitRange, always: Boolean) {
             checkRegister(register)
             addOperandRegisters(index, options.gp8OperandRegisters[index])
         }
 
-        override fun traceWrite(register: GpRegister16, index: Int, range: BitRange?, always: Boolean) {
+        override fun traceWrite(register: GpRegister16, index: Int, range: BitRange, always: Boolean) {
             checkRegister(register)
             addOperandRegisters(index, options.gp16OperandRegisters[index])
         }
 
-        override fun traceWrite(register: GpRegister32, index: Int, range: BitRange?, always: Boolean) {
+        override fun traceWrite(register: GpRegister32, index: Int, range: BitRange, always: Boolean) {
             checkRegister(register)
             addOperandRegisters(index, options.gp32OperandRegisters[index])
         }
 
-        override fun traceWrite(register: GpRegister64, index: Int, range: BitRange?, always: Boolean) {
+        override fun traceWrite(register: GpRegister64, index: Int, range: BitRange, always: Boolean) {
             checkRegister(register)
             addOperandRegisters(index, options.gp64OperandRegisters[index])
         }
 
-        override fun traceWrite(register: XmmRegister, index: Int, range: BitRange?, always: Boolean) {
+        override fun traceWrite(register: XmmRegister, index: Int, range: BitRange, always: Boolean) {
             checkRegister(register)
             addOperandRegisters(index, options.xmmOperandRegisters[index])
         }
 
-        override fun traceWrite(register: YmmRegister, index: Int, range: BitRange?, always: Boolean) {
+        override fun traceWrite(register: YmmRegister, index: Int, range: BitRange, always: Boolean) {
             checkRegister(register)
             addOperandRegisters(index, options.ymmOperandRegisters[index])
         }
 
-        override fun traceWrite(register: MmRegister, index: Int, range: BitRange?, always: Boolean) {
+        override fun traceWrite(register: MmRegister, index: Int, range: BitRange, always: Boolean) {
             checkRegister(register)
             addOperandRegisters(index, options.mmOperandRegisters[index])
         }
 
-        override fun traceWrite(register: X87Register, index: Int, range: BitRange?, always: Boolean) {
+        override fun traceWrite(register: X87Register, index: Int, range: BitRange, always: Boolean) {
             checkRegister(register)
             TODO()
         }
 
-        override fun traceRead(register: GpRegister8, index: Int, range: BitRange?) {
+        override fun traceRead(register: GpRegister8, index: Int, range: BitRange) {
             checkRegister(register)
             addOperandRegisters(index, options.gp8OperandRegisters[index])
         }
 
-        override fun traceRead(register: GpRegister16, index: Int, range: BitRange?) {
+        override fun traceRead(register: GpRegister16, index: Int, range: BitRange) {
             checkRegister(register)
             addOperandRegisters(index, options.gp16OperandRegisters[index])
         }
 
-        override fun traceRead(register: GpRegister32, index: Int, range: BitRange?) {
+        override fun traceRead(register: GpRegister32, index: Int, range: BitRange) {
             checkRegister(register)
             addOperandRegisters(index, options.gp32OperandRegisters[index])
         }
 
-        override fun traceRead(register: GpRegister64, index: Int, range: BitRange?) {
+        override fun traceRead(register: GpRegister64, index: Int, range: BitRange) {
             checkRegister(register)
             addOperandRegisters(index, options.gp64OperandRegisters[index])
         }
 
-        override fun traceRead(register: XmmRegister, index: Int, range: BitRange?) {
+        override fun traceRead(register: XmmRegister, index: Int, range: BitRange) {
             checkRegister(register)
             addOperandRegisters(index, options.xmmOperandRegisters[index])
         }
 
-        override fun traceRead(register: YmmRegister, index: Int, range: BitRange?) {
+        override fun traceRead(register: YmmRegister, index: Int, range: BitRange) {
             checkRegister(register)
             addOperandRegisters(index, options.ymmOperandRegisters[index])
         }
 
-        override fun traceRead(register: MmRegister, index: Int, range: BitRange?) {
+        override fun traceRead(register: MmRegister, index: Int, range: BitRange) {
             checkRegister(register)
             addOperandRegisters(index, options.mmOperandRegisters[index])
         }
 
-        override fun traceRead(register: X87Register, index: Int, range: BitRange?) {
+        override fun traceRead(register: X87Register, index: Int, range: BitRange) {
             checkRegister(register)
             TODO()
         }
@@ -189,7 +189,7 @@ class Interpreter(val programSet: ProgramSet,
 
 
 
-//        override fun traceWrite(register: Register, implicit: Boolean, range: BitRange?, always: Boolean) {
+//        override fun traceWrite(register: Register, implicit: Boolean, range: BitRange, always: Boolean) {
 //            val normalizedRegister = normalizeRegister(register)
 //            checkNormalizedRegister(normalizedRegister, register)
 //            if (implicit) {
@@ -903,8 +903,14 @@ class Interpreter(val programSet: ProgramSet,
 class Program(val size: Int) {
     private val code = UShortArray(size)
 
-    operator fun set(index: Int, interpreterOpcode: InterpreterOpcode) {
-        code[index] = interpreterOpcode.code
+    operator fun set(index: Int, opcode: InterpreterOpcode) {
+        code[index] = opcode.code
+    }
+
+    inline fun forEach(action: (InterpreterOpcode) -> Unit) {
+        for (i in 0 until size) {
+            action(this[i])
+        }
     }
 
     operator fun get(index: Int): InterpreterOpcode {

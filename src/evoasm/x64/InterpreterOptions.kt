@@ -25,10 +25,7 @@ class InterpreterOptions(instructions: List<Instruction> = defaultInstructions,
         }
 
         val defaultInstructions: List<Instruction> get() {
-            return InstructionGroup.values().fold(mutableListOf<Instruction>()) {acc, instructionGroup ->
-                acc.addAll(instructionGroup.instructions)
-                acc
-            }
+            return InstructionGroup.all
         }
 
         private fun <E> repeatList(count: Int, list: List<E>): List<List<E>> {
