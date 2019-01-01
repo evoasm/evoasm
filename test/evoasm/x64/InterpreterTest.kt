@@ -181,7 +181,7 @@ internal class InterpreterTest {
         val programSetOutput = ByteVectorProgramSetOutput(programSet, programInput, VectorSize.BITS_256)
         val interpreter = Interpreter(programSet, programInput, programSetOutput, options = options)
 
-        val interpreterMoveInstruction = interpreter.getMoveOpcode(VmovdqaYmmYmmm256, YMM1, YMM0)!!
+        val interpreterMoveInstruction = interpreter.getOpcode(VmovdqaYmmYmmm256, YMM1, YMM0)!!
 
         for (i in 0 until programSet.programSize step 2) {
             programSet[0, i] = interpreter.getOpcode(VpaddbYmmYmmYmmm256, YMM0, YMM1, YMM2)!!
@@ -223,7 +223,7 @@ internal class InterpreterTest {
         val programSetOutput = IntVectorProgramSetOutput(programSet, programInput, VectorSize.BITS_256)
         val interpreter = Interpreter(programSet, programInput, programSetOutput, options = options)
 
-        val interpreterMoveInstruction = interpreter.getMoveOpcode(VmovdqaYmmYmmm256, YMM1, YMM0)!!
+        val interpreterMoveInstruction = interpreter.getOpcode(VmovdqaYmmYmmm256, YMM1, YMM0)!!
 
         for (i in 0 until programSet.programSize step 2) {
             programSet[0, i] = interpreter.getOpcode(VpadddYmmYmmYmmm256, YMM0, YMM1, YMM2)!!
@@ -264,7 +264,7 @@ internal class InterpreterTest {
         val programSetOutput = FloatVectorProgramSetOutput(programSet, programInput, VectorSize.BITS_256)
         val interpreter = Interpreter(programSet, programInput, programSetOutput, options = options)
 
-        val interpreterMoveInstruction = interpreter.getMoveOpcode(VmovapsYmmYmmm256, YMM1, YMM0)!!
+        val interpreterMoveInstruction = interpreter.getOpcode(VmovapsYmmYmmm256, YMM1, YMM0)!!
 
         val addOpcode = interpreter.getOpcode(VaddpsYmmYmmYmmm256, YMM0, YMM1, YMM2)!!
         val subOpcode = interpreter.getOpcode(VsubpsYmmYmmYmmm256, YMM0, YMM1, YMM2)!!

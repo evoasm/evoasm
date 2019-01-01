@@ -58,14 +58,11 @@ abstract class Population<T: Number>(sampleSet: AbstractSampleSet<T>, val lossFu
     private val bestProgram = Program(programSet.programSize)
 
     fun nextGeneration() {
-        val seconds = measureTimeSeconds {
             if (select()) {
                 reproduce()
             } else {
                 //seed
             }
-        }
-        println("Seconds select/reprod $seconds")
     }
 
 
@@ -123,11 +120,11 @@ abstract class Population<T: Number>(sampleSet: AbstractSampleSet<T>, val lossFu
             updateBest()
         }
 
-        println("$runS $lossS")
-        println("-------------------------")
-        println(bestLoss)
-        println("AVGLOSS: ${losses.filter { it.isFinite() }.average()}")
-//        println("LOSSES: ${losses.toList()}")
+//        println("$runS $lossS")
+//        println("-------------------------")
+//        println(bestLoss)
+//        println("AVGLOSS: ${losses.filter { it.isFinite() }.average()}")
+////        println("LOSSES: ${losses.toList()}")
     }
 
 
@@ -313,7 +310,7 @@ fun main() {
             Random.nextLong(),//1234567,
             10,
             InterpreterOptions(instructions = InstructionGroup.ARITHMETIC_SD_AVX_XMM_INSTRUCTIONS.instructions,
-                               moveInstructions = listOf(VmovapdYmmYmmm256)),
+                               moveInstructions = listOf()),
             0.01f
                                    )
 

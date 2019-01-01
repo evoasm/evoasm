@@ -492,7 +492,6 @@ class Interpreter(val programSet: ProgramSet,
     private var firstInstructionOffset: Int = -1
 
     private val instructionMap = mutableMapOf<InterpreterInstruction, InterpreterOpcode>()
-    private val moveInstructionMap = mutableMapOf<Triple<Instruction, Register, Register>, InterpreterOpcode>()
 
 //    private val instructionParameters = InterpreterInstructionParameters(this)
 //    private val instructionTracer = InterpreterInstructionTracer(this)
@@ -531,10 +530,6 @@ class Interpreter(val programSet: ProgramSet,
 
     fun getOpcode(instruction: Instruction, vararg operandRegisters : Register): InterpreterOpcode? {
         return getOpcode(instruction, operandRegisters.toList())
-    }
-
-    fun getMoveOpcode(instruction: Instruction, destinationRegister: Register, sourceRegister: Register): InterpreterOpcode? {
-        return moveInstructionMap[Triple(instruction, destinationRegister, sourceRegister)]
     }
 
     fun getInstruction(opcode: InterpreterOpcode): InterpreterInstruction? {
@@ -795,7 +790,7 @@ class Interpreter(val programSet: ProgramSet,
 
                 emitInstruction {
 
-                    moveInstructionMap[Triple(instruction as Instruction, destinationRegister, sourceRegister)] = it
+                    instructionMap[InterpreterInstruction(instruction as Instruction, listOf(destinationRegister, sourceRegister))] = it
 
                     when (instruction) {
                         is R64m64R64Instruction  -> instruction.encode(buffer,
