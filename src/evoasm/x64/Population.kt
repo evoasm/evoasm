@@ -2,50 +2,33 @@ package evoasm.x64
 
 import evoasm.measureTimeSeconds
 import kasm.x64.BitRange
-import kasm.x64.VmovapdYmmYmmm256
 import kasm.x64.XmmRegister
-import kotlin.math.absoluteValue
 import kotlin.random.Random
+import evoasm.FastRandom
 
 interface SelectionOperator {
     fun select()
 }
 
-abstract class AbstractSampleSet<T: Number>() {
+abstract class SampleSet() {
     abstract val size: Int
 }
 
-class DoubleSampleSet(val inputArity: Int, vararg values : Double) : AbstractSampleSet<Double>() {
-    val outputValues : DoubleArray
-    val inputValues : DoubleArray
-    override val size: Int
+abstract class NumberSampleSet<T: Number>(val inputArity: Int, valuesSize : Int) : SampleSet() {
+
+    override val size: Int = valuesSize / (inputArity + 1)
 
     init {
-        val rowLength = inputArity + 1
-        require(values.size % rowLength == 0)
-        size = values.size / rowLength
-        outputValues = DoubleArray(size){ values[rowLength * it + inputArity] }
-        inputValues = DoubleArray(inputArity * size) {
-            val row = it / inputArity
-            val column = it % inputArity
-            values[row * rowLength + column]
-        }
+        require(valuesSize % (inputArity + 1) == 0)
     }
-
-    fun getOutputValue(rowIndex: Int): Double {
-        return outputValues[rowIndex]
-    }
-
-    fun getInputValue(rowIndex: Int, columnIndex: Int): Double {
-        return inputValues[rowIndex * inputArity + columnIndex]
-    }
-
 }
 
 
-abstract class Population<T: Number>(sampleSet: AbstractSampleSet<T>, val lossFunction: LossFunction<T>, val options: PopulationOptions) {
+abstract class Population<T: Number>(sampleSet: NumberSampleSet<T>, val options: PopulationOptions) {
     private val wonTournamentCounts = ByteArray(options.size)
-    protected val random = Random(options.seed)
+    private val winnerIndices = IntArray(options.size / options.tournamentSize)
+//    protected val random = Random(options.seed)
+    protected val random = FastRandom(options.seed)
     protected val populationSize = options.size
     protected val losses = FloatArray(populationSize)
     protected val programSet = ProgramSet(populationSize, options.programSize)
@@ -53,20 +36,70 @@ abstract class Population<T: Number>(sampleSet: AbstractSampleSet<T>, val lossFu
     protected abstract val programSetInput : ProgramSetInput
     protected abstract val programSetOutput : ProgramSetOutput
 
+    init {
+        require(options.size % options.demeSize == 0)
+    }
 
     protected abstract val interpreter : Interpreter // = Interpreter(programSet, programSetInput, programSetOutput, options = options.interpreterOptions)
     private val bestProgram = Program(programSet.programSize)
+    private var currentGeneration = 0
 
     fun nextGeneration() {
-            if (select()) {
-                reproduce()
+        var select: Boolean = false
+        val majorGeneration = currentGeneration.rem(options.majorGenerationFrequency) == 0
+
+        val selectT = measureTimeSeconds {
+            select = if(majorGeneration) {
+                majorSelect()
             } else {
-                //seed
+                minorSelect()
             }
+        }
+
+        println("Select took $selectT")
+
+        if (select) {
+            val reprodT = measureTimeSeconds {
+                if(majorGeneration) {
+                    majorReproduce()
+                } else {
+                    minorReproduce()
+                }
+            }
+            println("Reprod took $reprodT")
+
+        } else {
+              //seed
+          }
+
+        currentGeneration++
     }
 
 
-    private fun select(): Boolean {
+
+    private fun minorSelect() : Boolean {
+        val tournamentSize = options.tournamentSize
+
+        for (i in winnerIndices.indices)  {
+            val baseIndex = i * tournamentSize
+            var minIndex = baseIndex
+            var minLoss = losses[baseIndex]
+            for(j in 1 until tournamentSize) {
+                val index = baseIndex + j
+                val loss = losses[index]
+                if(loss <= minLoss) {
+                    minLoss = loss
+                    minIndex = index
+                }
+            }
+            winnerIndices[i] = minIndex
+        }
+        return true
+    }
+
+
+
+    private fun majorSelect(): Boolean {
         wonTournamentCounts.fill(0)
 
         val tournamentSize = options.tournamentSize
@@ -89,7 +122,8 @@ abstract class Population<T: Number>(sampleSet: AbstractSampleSet<T>, val lossFu
             var minLoss = Float.POSITIVE_INFINITY
 
             for(i in 0 until tournamentSize) {
-                val index = random.nextInt(0, populationSize)
+                val index = this.random.nextInt(populationSize)
+//                require(index >= 0 && index < populationSize)
                 val loss = losses[index]
 
                 if(loss <= minLoss) {
@@ -104,23 +138,31 @@ abstract class Population<T: Number>(sampleSet: AbstractSampleSet<T>, val lossFu
             }
 
             iterationCounter++
-            if(iterationCounter > populationSize && selectedCounter == 0) return false
+            if(iterationCounter > populationSize && selectedCounter == 0) {
+                throw RuntimeException()
+            }
         }
 
         return true
     }
 
+    private var runS: Double = 0.0
+    private var gen = 0
+
     fun evaluate() {
-        val runS = measureTimeSeconds {
+        gen++
+
+        val thisRunS = measureTimeSeconds {
             interpreter.run()
         }
+        runS = (1.0/gen) * thisRunS + (1.0 - (1.0/gen)) * runS
 
         val lossS = measureTimeSeconds {
             calculateLosses()
             updateBest()
         }
 
-//        println("$runS $lossS")
+        println("Interpreter took $runS")
 //        println("-------------------------")
 //        println(bestLoss)
 //        println("AVGLOSS: ${losses.filter { it.isFinite() }.average()}")
@@ -152,6 +194,7 @@ abstract class Population<T: Number>(sampleSet: AbstractSampleSet<T>, val lossFu
     fun printBest() {
         bestProgram.forEach {
             println("${it}: ${interpreter.getInstruction(it)}")
+            println("${it}: ${interpreter.disassemble(it).contentDeepToString()}")
         }
 
         println()
@@ -164,7 +207,23 @@ abstract class Population<T: Number>(sampleSet: AbstractSampleSet<T>, val lossFu
 
     protected abstract fun calculateLosses()
 
-    private fun reproduce() {
+
+    private fun minorReproduce() {
+        val tournamentSize = options.tournamentSize
+//        println(winnerIndices.contentToString())
+        for(i in winnerIndices.indices) {
+            val winnerIndex = winnerIndices[i]
+            val baseIndex = i * tournamentSize
+            for(j in 0 until tournamentSize) {
+                if(j != winnerIndex) {
+                    programSet.copyProgram(winnerIndex, baseIndex + j)
+                }
+            }
+        }
+        mutatePrograms()
+    }
+
+    private fun majorReproduce() {
         var deadIndex = 0
         for(i in 0 until populationSize) {
             val childCount = wonTournamentCounts[i] - 1
@@ -208,8 +267,8 @@ abstract class Population<T: Number>(sampleSet: AbstractSampleSet<T>, val lossFu
         val maxOpcodeIndex = interpreter.maxOpcodeIndex
         val mutationRate = options.mutationRate
         programSet.transform { interpreterOpcode: InterpreterOpcode, programIndex: Int, instructionIndex: Int ->
-            if(random.nextFloat() < mutationRate) {
-                val opcodeIndex = random.nextInt(0, maxOpcodeIndex)
+            if(this.random.nextFloat() < mutationRate) {
+                val opcodeIndex = this.random.nextInt(maxOpcodeIndex)
                 interpreter.getOpcode(opcodeIndex)
             } else {
                 interpreterOpcode
@@ -219,86 +278,14 @@ abstract class Population<T: Number>(sampleSet: AbstractSampleSet<T>, val lossFu
 
 }
 
-interface LossFunction<T : Number> {
-    fun calculate(expectedValue: T, actualValue: T) : Float
-}
-
-class DoublePopulation(val sampleSet: DoubleSampleSet,
-                       lossFunction: DoubleLossFunction,
-                       options: PopulationOptions) : Population<Double>(sampleSet, lossFunction, options) {
-
-    override val programSetInput = DoubleProgramSetInput(sampleSet.size, sampleSet.inputArity)
-    override val programSetOutput = DoubleProgramSetOutput(programSet, programSetInput)
-    override val interpreter = Interpreter(programSet, programSetInput, programSetOutput, options = options.interpreterOptions)
-
-    init {
-        loadInput(sampleSet)
-        seed()
-    }
-
-    private fun seed() {
-        val maxOpcodeIndex = interpreter.maxOpcodeIndex
-        for (i in 0 until programSet.size) {
-            for(j in 0 until programSet.programSize) {
-                val interpreterInstruction = interpreter.getOpcode(random.nextInt(maxOpcodeIndex))
-                programSet[i, j] = interpreterInstruction
-            }
-        }
-    }
-
-    private fun loadInput(sampleSet: DoubleSampleSet) {
-        println(sampleSet)
-        for (i in 0 until sampleSet.size) {
-            for(j in 0 until sampleSet.inputArity) {
-                programSetInput[i, j] = sampleSet.getInputValue(i, j)
-                println("SETTING ${sampleSet.getInputValue(i, j)}")
-
-            }
-        }
-
-
-        for(k in 0 until programSet.size) {
-            for (i in 0 until sampleSet.size) {
-                programSetOutput.setDouble(k, i, -1.0)
-            }
-        }
-
-
-
-        println(sampleSet.size)
-    }
-
-    override fun calculateLosses() {
-        for (programIndex in 0 until populationSize) {
-            var loss = 0f
-            for(inputIndex in 0 until programSetInput.size) {
-                val actualOutput = programSetOutput.get(programIndex, inputIndex)
-                val expectedOutput = sampleSet.getOutputValue(inputIndex)
-
-                //println("ACTIAL OUTPUT: $actualOutput $expectedOutput")
-
-                loss += (expectedOutput - actualOutput).toFloat().absoluteValue
-            }
-            losses[programIndex] = loss
-        }
-    }
-}
-
-interface DoubleLossFunction : LossFunction<Double> {
-
-    fun calculateDouble(expectedValue: Double, actualValue: Double) : Float
-
-    override fun calculate(expectedValue: Double, actualValue: Double) : Float {
-        return calculateDouble(expectedValue, actualValue)
-    }
-}
-
 class PopulationOptions(val size: Int,
                         val tournamentSize: Int,
                         val seed: Long,
                         val programSize: Int,
                         val interpreterOptions: InterpreterOptions,
-                        val mutationRate: Float) {
+                        val mutationRate: Float,
+                        val demeSize: Int,
+                        val majorGenerationFrequency: Int) {
 
 }
 
@@ -306,32 +293,35 @@ fun main() {
 
     val options = PopulationOptions(
             100,
-            3,
+            4,
             Random.nextLong(),//1234567,
-            10,
-            InterpreterOptions(instructions = InstructionGroup.ARITHMETIC_SD_AVX_XMM_INSTRUCTIONS.instructions,
-                               moveInstructions = listOf()),
-            0.01f
+            5,
+            InterpreterOptions(instructions = InstructionGroup.ARITHMETIC_SS_AVX_XMM_INSTRUCTIONS.instructions,
+                               moveInstructions = listOf(),
+                               unsafe = true),
+            0.01f,
+            demeSize = 10,
+            majorGenerationFrequency = 10
                                    )
 
     val lossFunction = L1Norm()
 
-    val sampleSet = DoubleSampleSet(1,
-            0.0, 	0.0,
-                        0.5, 	1.0606601717798212,
-                    1.0, 	1.7320508075688772,
-                    1.5, 	2.5248762345905194,
-                2.0, 	3.4641016151377544,
-                2.5, 	4.541475531146237,
-                3.0, 	5.744562646538029,
-                3.5, 	7.0622234459127675,
-                4.0, 	8.48528137423857,
-                4.5, 	10.00624804809475,
-                5.0, 	11.61895003862225
+    val sampleSet = FloatSampleSet(1,
+            0.0f, 	0.0f,
+                        0.5f, 	1.0606601717798212f,
+                    1.0f, 	1.7320508075688772f,
+                    1.5f, 	2.5248762345905194f,
+                2.0f, 	3.4641016151377544f,
+                2.5f, 	4.541475531146237f,
+                3.0f, 	5.744562646538029f,
+                3.5f, 	7.0622234459127675f,
+                4.0f, 	8.48528137423857f,
+                4.5f, 	10.00624804809475f,
+                5.0f, 	11.61895003862225f
                                    )
 
 
-    val population = DoublePopulation(sampleSet, lossFunction, options)
+    val population = FloatPopulation(sampleSet, options)
 
     val seconds = measureTimeSeconds {
 
@@ -350,9 +340,3 @@ fun main() {
 
 }
 
-class L1Norm : DoubleLossFunction {
-    override fun calculateDouble(expectedValue: Double, actualValue: Double): Float {
-        return (actualValue - expectedValue).toFloat().absoluteValue
-    }
-
-}

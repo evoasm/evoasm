@@ -28,16 +28,17 @@ internal class InterpreterTest {
         val instructionCount = defaultOptions.instructions.size
         println(defaultOptions.instructions.size)
         val options = InterpreterOptions(instructions = defaultOptions.instructions.take(instructionCount),
+                                         compressOpcodes = compressOpcodes,
                                          moveInstructions = defaultOptions.moveInstructions,
-                                         gp8OperandRegisters = operandRegisters(3, Interpreter.GP_REGISTERS.map{it.subRegister8}),
-                                         gp16OperandRegisters = operandRegisters(3, Interpreter.GP_REGISTERS.map{it.subRegister16}),
-                                         gp32OperandRegisters = operandRegisters(3, Interpreter.GP_REGISTERS.map{it.subRegister32}),
-                                         gp64OperandRegisters = operandRegisters(3, Interpreter.GP_REGISTERS),
-                                         mmOperandRegisters = operandRegisters(3, Interpreter.MM_REGISTERS),
                                          xmmOperandRegisters = operandRegisters(4, Interpreter.XMM_REGISTERS),
                                          ymmOperandRegisters = operandRegisters(4, Interpreter.YMM_REGISTERS),
-                                         compressOpcodes = compressOpcodes
-                                         )
+                                         mmOperandRegisters = operandRegisters(3, Interpreter.MM_REGISTERS),
+                                         gp64OperandRegisters = operandRegisters(3, Interpreter.GP_REGISTERS),
+                                         gp32OperandRegisters = operandRegisters(3, Interpreter.GP_REGISTERS.map{it.subRegister32}),
+                                         gp16OperandRegisters = operandRegisters(3, Interpreter.GP_REGISTERS.map{it.subRegister16}),
+                                         gp8OperandRegisters = operandRegisters(3, Interpreter.GP_REGISTERS.map{it.subRegister8}),
+                                         unsafe = false
+                                        )
         println(options.instructions.last())
         val programSet = ProgramSet(1000, options.instructions.size)
         val programSetOutput = LongProgramSetOutput(programSet, programInput)
@@ -66,9 +67,10 @@ internal class InterpreterTest {
         programInput[0, 1] = 0x1L
         //val options = InterpreterOptions.DEFAULT
         val options = InterpreterOptions(instructions = InstructionGroup.ARITHMETIC_GP64_INSTRUCTIONS.instructions,
+                                         compressOpcodes = compressOpcodes,
                                          moveInstructions = emptyList(),
                                          gp64OperandRegisters = operandRegisters(3, Interpreter.GP_REGISTERS),
-                                         compressOpcodes = compressOpcodes)
+                                         unsafe = false)
         val programSet = ProgramSet(1, programSize)
         val programSetOutput = LongProgramSetOutput(programSet, programInput)
         val interpreter = Interpreter(programSet, programInput, programSetOutput, options = options)
@@ -132,14 +134,15 @@ internal class InterpreterTest {
         programInput[0, 1] = 0x1L
         val options = InterpreterOptions(instructions = instructionGroup.instructions,
                                          compressOpcodes = compressOpcodes,
-                                         gp8OperandRegisters = operandRegisters(3, Interpreter.GP_REGISTERS.map{it.subRegister8}),
-                                         gp16OperandRegisters = operandRegisters(3, Interpreter.GP_REGISTERS.map{it.subRegister16}),
-                                         gp32OperandRegisters = operandRegisters(3, Interpreter.GP_REGISTERS.map{it.subRegister32}),
-                                         gp64OperandRegisters = operandRegisters(3, Interpreter.GP_REGISTERS),
-                                         mmOperandRegisters = operandRegisters(3, Interpreter.MM_REGISTERS),
                                          xmmOperandRegisters = operandRegisters(4, Interpreter.XMM_REGISTERS),
-                                         ymmOperandRegisters = operandRegisters(4, Interpreter.YMM_REGISTERS)
-                                         )
+                                         ymmOperandRegisters = operandRegisters(4, Interpreter.YMM_REGISTERS),
+                                         mmOperandRegisters = operandRegisters(3, Interpreter.MM_REGISTERS),
+                                         gp64OperandRegisters = operandRegisters(3, Interpreter.GP_REGISTERS),
+                                         gp32OperandRegisters = operandRegisters(3, Interpreter.GP_REGISTERS.map{it.subRegister32}),
+                                         gp16OperandRegisters = operandRegisters(3, Interpreter.GP_REGISTERS.map{it.subRegister16}),
+                                         gp8OperandRegisters = operandRegisters(3, Interpreter.GP_REGISTERS.map{it.subRegister8}),
+                                         unsafe = false
+                                        )
         val programSet = ProgramSet(2, programSize)
         val programSetOutput = LongProgramSetOutput(programSet, programInput)
         val interpreter = Interpreter(programSet, programInput, programSetOutput, options = options)
@@ -176,7 +179,8 @@ internal class InterpreterTest {
         programInput[0, 1] = Array(elementCount){0.toByte()}
         programInput[0, 2] = Array(elementCount){(it % 4).toByte()}
         val options = InterpreterOptions(instructions = InstructionGroup.ARITHMETIC_B_AVX_YMM_INSTRUCTIONS.instructions,
-                                         moveInstructions = listOf(VmovdqaYmmYmmm256))
+                                         moveInstructions = listOf(VmovdqaYmmYmmm256),
+                                         unsafe = false)
         val programSet = ProgramSet(2, programSize)
         val programSetOutput = ByteVectorProgramSetOutput(programSet, programInput, VectorSize.BITS_256)
         val interpreter = Interpreter(programSet, programInput, programSetOutput, options = options)
@@ -218,7 +222,8 @@ internal class InterpreterTest {
         programInput[0, 1] = Array(elementCount){ 0 }
         programInput[0, 2] = Array(elementCount){ (it % 4) }
         val options = InterpreterOptions(instructions = InstructionGroup.ARITHMETIC_D_AVX_YMM_INSTRUCTIONS.instructions,
-                                         moveInstructions = listOf(VmovdqaYmmYmmm256))
+                                         moveInstructions = listOf(VmovdqaYmmYmmm256),
+                                         unsafe = false)
         val programSet = ProgramSet(2, programSize)
         val programSetOutput = IntVectorProgramSetOutput(programSet, programInput, VectorSize.BITS_256)
         val interpreter = Interpreter(programSet, programInput, programSetOutput, options = options)
@@ -259,7 +264,8 @@ internal class InterpreterTest {
         programInput[0, 1] = Array(elementCount){0.toFloat()}
         programInput[0, 2] = Array(elementCount){(it % 4).toFloat()}
         val options = InterpreterOptions(instructions = InstructionGroup.ARITHMETIC_PS_AVX_YMM_INSTRUCTIONS.instructions,
-                                         moveInstructions = listOf(VmovapsYmmYmmm256))
+                                         moveInstructions = listOf(VmovapsYmmYmmm256),
+                                         unsafe = false)
         val programSet = ProgramSet(2, programSize)
         val programSetOutput = FloatVectorProgramSetOutput(programSet, programInput, VectorSize.BITS_256)
         val interpreter = Interpreter(programSet, programInput, programSetOutput, options = options)
@@ -303,7 +309,8 @@ internal class InterpreterTest {
         programInput[0, 1] = 1.0
 
         val options = InterpreterOptions(instructions = InstructionGroup.ARITHMETIC_SD_SSE_XMM_INSTRUCTIONS.instructions,
-                                         moveInstructions = listOf())
+                                         moveInstructions = listOf(),
+                                         unsafe = false)
 
         val programSet = ProgramSet(2, programSize)
         val programSetOutput = DoubleProgramSetOutput(programSet, programInput)
@@ -343,7 +350,8 @@ internal class InterpreterTest {
 
 
         val options = InterpreterOptions(instructions = InstructionGroup.ARITHMETIC_SD_SSE_XMM_INSTRUCTIONS.instructions,
-                                         moveInstructions = listOf())
+                                         moveInstructions = listOf(),
+                                         unsafe = false)
 
         val programSet = ProgramSet(2, programSize)
         val programSetOutput = DoubleProgramSetOutput(programSet, programInput)

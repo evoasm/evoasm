@@ -65,6 +65,14 @@ class LongProgramSetOutput(programSet: ProgramSet, programSetInput: ProgramSetIn
         return storage.field.get(programIndex, outputIndex)
     }
 
+    private fun setLong(programIndex: Int, inputIndex: Int, value: Long) {
+        return storage.field.set(programIndex, inputIndex, value)
+    }
+
+    operator fun set(programIndex: Int, inputIndex: Int, value: Long) {
+        return setLong(programIndex, inputIndex, value)
+    }
+
     override operator fun get(programIndex: Int, outputIndex: Int): Long {
         return getLong(programIndex, outputIndex)
     }
@@ -94,12 +102,16 @@ class DoubleProgramSetOutput(programSet: ProgramSet, programSetInput: ProgramSet
         return storage.field.get(programIndex, inputIndex)
     }
 
-    fun setDouble(programIndex: Int, inputIndex: Int, value: Double) {
+    private fun setDouble(programIndex: Int, inputIndex: Int, value: Double) {
         return storage.field.set(programIndex, inputIndex, value)
     }
 
-    override operator fun get(programIndex: Int, inputIndex: Int): Double {
-        return getDouble(programIndex, inputIndex)
+    override operator fun get(programIndex: Int, outputIndex: Int): Double {
+        return getDouble(programIndex, outputIndex)
+    }
+
+    operator fun set(programIndex: Int, inputIndex: Int, value: Double) {
+        return setDouble(programIndex, inputIndex, value)
     }
 
     override fun emitStore(assembler: Assembler) {
@@ -116,8 +128,40 @@ class DoubleProgramSetOutput(programSet: ProgramSet, programSetInput: ProgramSet
         val doubleBuffer = buffer.asDoubleBuffer()
         return DoubleArray(elementCount) { doubleBuffer.get(it)}.contentToString()
     }
+}
 
+class FloatProgramSetOutput(programSet: ProgramSet, programSetInput: ProgramSetInput) : ValueProgramSetOutput<Float>(programSet, programSetInput) {
+    override val structure: Structure get() = storage
+    private val storage: Storage
 
+    private class Storage(programCount: Int, inputSize: Int) : Structure() {
+        val field = floatField(programCount, inputSize, alignment = 16)
+    }
+
+    init {
+        storage = Storage(programSet.size, programSetInput.size)
+        storage.allocate()
+    }
+
+    fun getFloat(programIndex: Int, inputIndex: Int) = storage.field.get(programIndex, inputIndex)
+    private fun setFloat(programIndex: Int, inputIndex: Int, value: Float) = storage.field.set(programIndex, inputIndex, value)
+    override operator fun get(programIndex: Int, outputIndex: Int): Float = getFloat(programIndex, outputIndex)
+    operator fun set(programIndex: Int, inputIndex: Int, value: Float) = setFloat(programIndex, inputIndex, value)
+
+    override fun emitStore(assembler: Assembler) {
+        emitStore(assembler, storage.field.address, 4) {
+            val outputRegister = Interpreter.XMM_REGISTERS.first()
+            assembler.movFloat(AddressExpression32(it), outputRegister)
+        }
+    }
+
+    override fun toString(): String {
+        val elementCount = storage.field.dimensions.fold(1) { acc: Int, value: Int ->
+            acc * value
+        }
+        val doubleBuffer = buffer.asFloatBuffer()
+        return FloatArray(elementCount) { doubleBuffer.get(it)}.contentToString()
+    }
 }
 
 abstract class VectorProgramSetOutput<T : Number>(programSet: ProgramSet, programSetInput: ProgramSetInput, val vectorSize: VectorSize) : ProgramSetOutput(programSet, programSetInput) {

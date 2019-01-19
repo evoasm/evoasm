@@ -490,6 +490,7 @@ class Interpreter(val programSet: ProgramSet,
 
 
     private var firstInstructionOffset: Int = -1
+    private var interpreterEpilogOffset: Int = -1
 
     private val instructionMap = mutableMapOf<InterpreterInstruction, InterpreterOpcode>()
 
@@ -509,6 +510,11 @@ class Interpreter(val programSet: ProgramSet,
 //             ) { "invalid halt instruction (${ProgramSet.HALT_INSTRUCTION} should be ${getHaltOpcode()})" }
 //        programSet._init(this)
         println(buffer.toByteString())
+
+        if(options.unsafe) {
+            buffer.makeExecutable()
+        }
+
     }
 
     internal fun getHaltOpcode(): InterpreterOpcode {
@@ -520,7 +526,7 @@ class Interpreter(val programSet: ProgramSet,
     }
 
     fun getOpcode(opcodeIndex: Int): InterpreterOpcode {
-        require(opcodeIndex < instructionCounter) { "invalid opcode index $opcodeIndex (max opcode index is $instructionCounter)" }
+//        require(opcodeIndex < instructionCounter) { "invalid opcode index $opcodeIndex (max opcode index is $instructionCounter)" }
         return InterpreterOpcode(instructions[opcodeIndex + INTERNAL_INSTRUCTION_COUNT].toUShort());
     }
 
@@ -548,6 +554,26 @@ class Interpreter(val programSet: ProgramSet,
             mov(AddressExpression64(RSP), 0)
             popfq()
         }
+    }
+
+    fun disassemble(opcode: InterpreterOpcode): Array<out Array<String>> {
+        val instructionIndex = instructions.asShortArray().binarySearch(opcode.code.toShort(), 0, instructionCounter)
+        println("found index ${instructions.indexOf(opcode.code)} for ${opcode.code}")
+        require(instructionIndex >= 0) { "opcode ${opcode.code} was not found"}
+        val instructionOffset = getInstructionOffset(opcode)
+
+        println("$instructionIndex")
+
+        val instructionEndOffset = if(instructionIndex + 1 < instructionCounter) {
+            getInstructionOffset(instructions[instructionIndex + 1])
+        } else {
+            interpreterEpilogOffset
+        }
+
+        val codeArray = ByteArray(instructionEndOffset - instructionOffset) {
+            buffer.byteBuffer.get(instructionOffset + it)
+        }
+        return Disassembler.disassemble(codeArray)
     }
 
     private var programStartLabel: Assembler.Label? = null
@@ -638,6 +664,7 @@ class Interpreter(val programSet: ProgramSet,
     }
 
     private fun emitInterpreterEpilog() {
+        interpreterEpilogOffset = buffer.byteBuffer.position()
         assembler.link(haltLinkPoint!!)
     }
 
@@ -834,15 +861,15 @@ class Interpreter(val programSet: ProgramSet,
     }
 
     private fun addInstruction(): InterpreterOpcode {
-        val index = if (firstInstructionOffset > 0) {
+        val opcode = if (firstInstructionOffset > 0) {
             val relativeInstructionOffset = buffer.byteBuffer.position() - firstInstructionOffset
-            val opcode = if(options.compressOpcodes) {
+            val opcodeInt = if(options.compressOpcodes) {
                 relativeInstructionOffset / 8
             } else {
                 relativeInstructionOffset
             }
-            require(opcode < UShort.MAX_VALUE.toInt()) {"16-bit opcode size exceeded"}
-            opcode.toUShort()
+            require(opcodeInt < UShort.MAX_VALUE.toInt()) {"16-bit opcode size exceeded"}
+            opcodeInt.toUShort()
         } else {
             firstInstructionOffset = buffer.byteBuffer.position()
             0U
@@ -852,9 +879,19 @@ class Interpreter(val programSet: ProgramSet,
             instructions.copyInto(newInstructions)
             instructions = newInstructions
         }
-        instructions[instructionCounter++] = index
-        return InterpreterOpcode(index)
+        instructions[instructionCounter++] = opcode
+        return InterpreterOpcode(opcode)
     }
+
+    private fun getInstructionOffset(opcode: UShort) : Int {
+        return firstInstructionOffset + if(options.compressOpcodes) {
+            opcode.toInt() * 8
+        } else {
+            opcode.toInt()
+        }
+    }
+
+    private fun getInstructionOffset(opcode: InterpreterOpcode) = getInstructionOffset(opcode.code)
 
     fun run() {
 //        println("instruction counter: $instructionCounter")
@@ -865,7 +902,11 @@ class Interpreter(val programSet: ProgramSet,
 //        println("sec instruction is ${programSet.byteBuffer.asShortBuffer().get(1)}")
 //        println("third instruction is ${programSet.byteBuffer.asShortBuffer().get(2)}")
 //        println("instruction address ${instructions.contentToString()}")
-        buffer.execute()
+        if(options.unsafe) {
+            buffer.executeUnsafe()
+        } else {
+            buffer.execute()
+        }
     }
 
     data class RunMeasurements(var elapsedSeconds: Double, var instructionsPerSecond: Double)
@@ -942,7 +983,7 @@ class ProgramSet(val size: Int, val programSize: Int) {
         byteBuffer.putShort(offset, opcode.code.toShort())
     }
 
-    internal fun transform(action: (InterpreterOpcode, Int, Int) -> InterpreterOpcode)  {
+    internal inline fun transform(action: (InterpreterOpcode, Int, Int) -> InterpreterOpcode)  {
         for(i in 0 until size) {
             val programOffset = i * actualProgramSize * Short.SIZE_BYTES
             for (j in 0 until programSize) {

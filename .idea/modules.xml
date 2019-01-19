@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/evoasm.iml" filepath="$PROJECT_DIR$/evoasm.iml" />
+      <module fileurl="file://$PROJECT_DIR$/evoasm-gen/evoasm-gen.iml" filepath="$PROJECT_DIR$/evoasm-gen/evoasm-gen.iml" />
       <module fileurl="file://$PROJECT_DIR$/../kasm/kasm-core/kasm-core.iml" filepath="$PROJECT_DIR$/../kasm/kasm-core/kasm-core.iml" />
       <module fileurl="file://$PROJECT_DIR$/../kasm/kasm-gen/kasm-gen.iml" filepath="$PROJECT_DIR$/../kasm/kasm-gen/kasm-gen.iml" />
       <module fileurl="file://$PROJECT_DIR$/../kasm/kasm-native/kasm-native.iml" filepath="$PROJECT_DIR$/../kasm/kasm-native/kasm-native.iml" />

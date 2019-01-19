@@ -5,7 +5,7 @@ import kasm.x64.*
 class InterpreterOptions(instructions: List<Instruction> = defaultInstructions,
                          val allowUnsupportedInstructions: Boolean = false,
                          val safeDivision: Boolean = true,
-                         val compressOpcodes : Boolean = true,
+                         val compressOpcodes: Boolean = true,
                          val moveInstructions: List<MoveInstruction> = defaultMoveInstructions,
                          val movesGenerator: (MoveInstruction, List<Register>) -> Sequence<Pair<Register, Register>> = ::defaultMovesGenerator,
                          val xmmOperandRegisters: List<List<XmmRegister>> = DEFAULT_XMM_OPERAND_REGISTERS,
@@ -14,7 +14,8 @@ class InterpreterOptions(instructions: List<Instruction> = defaultInstructions,
                          val gp64OperandRegisters: List<List<GpRegister64>> = DEFAULT_GP64_OPERAND_REGISTERS,
                          val gp32OperandRegisters: List<List<GpRegister32>> = DEFAULT_GP32_OPERAND_REGISTERS,
                          val gp16OperandRegisters: List<List<GpRegister16>> = DEFAULT_GP16_OPERAND_REGISTERS,
-                         val gp8OperandRegisters: List<List<GpRegister8>> = DEFAULT_GP8_OPERAND_REGISTERS) {
+                         val gp8OperandRegisters: List<List<GpRegister8>> = DEFAULT_GP8_OPERAND_REGISTERS,
+                         val unsafe: Boolean) {
 
     companion object {
         private fun supportedInstruction(i0: Instruction,
@@ -49,7 +50,7 @@ class InterpreterOptions(instructions: List<Instruction> = defaultInstructions,
 
 
 
-        val DEFAULT = InterpreterOptions()
+        val DEFAULT = InterpreterOptions(unsafe = false)
 
         fun defaultMovesGenerator(moveInstruction: MoveInstruction, registers: List<Register>): Sequence<Pair<Register, Register>> {
             val list = mutableListOf<Pair<Register, Register>>()

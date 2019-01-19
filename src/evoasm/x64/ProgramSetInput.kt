@@ -55,12 +55,12 @@ abstract class ProgramSetInput(val size: Int, val arity: Int) {
     }
 }
 
-abstract class ValueProgramSetInput<T : Number>(size: Int, arity: Int) : ProgramSetInput(size, arity) {
+abstract class NumberProgramSetInput<T : Number>(size: Int, arity: Int) : ProgramSetInput(size, arity) {
     abstract operator fun set(rowIndex: Int, columnIndex: Int, value: T)
 }
 
 
-class LongProgramSetInput(size: Int, arity: Int) : ValueProgramSetInput<Long>(size, arity) {
+class LongProgramSetInput(size: Int, arity: Int) : NumberProgramSetInput<Long>(size, arity) {
     private val storage: Storage
 
     private class Storage(size: Int, arity: Int) : Structure() {
@@ -85,7 +85,7 @@ class LongProgramSetInput(size: Int, arity: Int) : ValueProgramSetInput<Long>(si
     }
 }
 
-class DoubleProgramSetInput(size: Int, arity: Int) : ValueProgramSetInput<Double>(size, arity) {
+class DoubleProgramSetInput(size: Int, arity: Int) : NumberProgramSetInput<Double>(size, arity) {
     private val storage: Storage
 
     private class Storage(size: Int, arity: Int) : Structure() {
@@ -104,8 +104,33 @@ class DoubleProgramSetInput(size: Int, arity: Int) : ValueProgramSetInput<Double
 
     override fun emitLoad(assembler: Assembler) {
         emitLoad(assembler, storage.field.address,
-                 Interpreter.XMM_REGISTERS, Long.SIZE_BYTES) { register, baseRegister ->
+                 Interpreter.XMM_REGISTERS, 8) { register, baseRegister ->
             assembler.movDouble(register, AddressExpression64(base = baseRegister))
+        }
+    }
+}
+
+class FloatProgramSetInput(size: Int, arity: Int) : NumberProgramSetInput<Float>(size, arity) {
+    private val storage: Storage
+
+    private class Storage(size: Int, arity: Int) : Structure() {
+        val field = floatField(size, arity)
+    }
+
+    init {
+        require(arity < Interpreter.XMM_REGISTERS.size)
+        storage = Storage(size, arity)
+        storage.allocate()
+    }
+
+    override fun set(rowIndex: Int, columnIndex: Int, value: Float) {
+        storage.field.set(rowIndex, columnIndex, value)
+    }
+
+    override fun emitLoad(assembler: Assembler) {
+        emitLoad(assembler, storage.field.address,
+                 Interpreter.XMM_REGISTERS, 4) { register, baseRegister ->
+            assembler.movFloat(register, AddressExpression32(base = baseRegister))
         }
     }
 }

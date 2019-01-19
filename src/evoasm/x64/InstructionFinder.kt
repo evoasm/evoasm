@@ -1,13 +1,11 @@
 package evoasm.x64
 
-import kasm.x64.Instruction
-
 class InstructionFinder<T : Number>(inputArity: Int, vararg values: T) {
 
     private val rows = values.toList().chunked(inputArity + 1)
-    private val programInput : ValueProgramSetInput<T> = when(val value = values.first()) {
-        is Long -> LongProgramSetInput(rows.size, inputArity) as ValueProgramSetInput<T>
-        is Double -> DoubleProgramSetInput(rows.size, inputArity) as ValueProgramSetInput<T>
+    private val programInput : NumberProgramSetInput<T> = when(val value = values.first()) {
+        is Long -> LongProgramSetInput(rows.size, inputArity) as NumberProgramSetInput<T>
+        is Double -> DoubleProgramSetInput(rows.size, inputArity) as NumberProgramSetInput<T>
         else -> throw IllegalArgumentException("invalid value class ${value}")
     }
     private val interpreterOptions = InterpreterOptions.DEFAULT
