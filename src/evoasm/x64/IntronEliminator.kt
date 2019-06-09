@@ -88,9 +88,9 @@ class IntronEliminator(val program: Program, val outputRegister: XmmRegister, va
             val opcode = program[i]
             println("handling opc ${opcode}")
             val interpreterInstruction = interpreter.getInstruction(opcode)!!
-            operandRegisters = interpreterInstruction.operandRegisters
+//            operandRegisters = interpreterInstruction.instructionParameters
             instructionTracer.currentInstructionIndex = i
-            interpreterInstruction.instruction.trace(instructionTracer, instructionParameters)
+            interpreterInstruction.instruction.trace(instructionTracer, interpreterInstruction.instructionParameters)
         }
         val intronFreeProgramSize = markedInstructionIndices.count { it }
         val p = Program(intronFreeProgramSize)

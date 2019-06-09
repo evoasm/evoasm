@@ -6,22 +6,20 @@ class LongSampleSet(inputArity: Int, vararg values : Long) : NumberSampleSet<Lon
     private val inputValues : LongArray
 
     init {
-        val rowLength = inputArity + 1
-        require(values.size % rowLength == 0)
         // size = values.size / rowLength
-        outputValues = LongArray(size){ values[rowLength * it + inputArity] }
+        outputValues = LongArray(size){ values[elementsPerRow * it + inputArity] }
         inputValues = LongArray(inputArity * size) {
             val row = it / inputArity
             val column = it % inputArity
-            values[row * rowLength + column]
+            values[row * elementsPerRow + column]
         }
     }
 
-    fun getOutputValue(rowIndex: Int): Long {
+    override fun getOutputValue(rowIndex: Int): Long {
         return outputValues[rowIndex]
     }
 
-    fun getInputValue(rowIndex: Int, columnIndex: Int): Long {
+    override fun getInputValue(rowIndex: Int, columnIndex: Int): Long {
         return inputValues[rowIndex * inputArity + columnIndex]
     }
 }
@@ -33,22 +31,20 @@ class FloatSampleSet(inputArity: Int, vararg values : Float) : NumberSampleSet<F
     private val inputValues : FloatArray
 
     init {
-        val rowLength = inputArity + 1
-        require(values.size % rowLength == 0)
         // size = values.size / rowLength
-        outputValues = FloatArray(size){ values[rowLength * it + inputArity] }
+        outputValues = FloatArray(size){ values[elementsPerRow * it + inputArity] }
         inputValues = FloatArray(inputArity * size) {
             val row = it / inputArity
             val column = it % inputArity
-            values[row * rowLength + column]
+            values[row * elementsPerRow + column]
         }
     }
 
-    fun getOutputValue(rowIndex: Int): Float {
+    override fun getOutputValue(rowIndex: Int): Float {
         return outputValues[rowIndex]
     }
 
-    fun getInputValue(rowIndex: Int, columnIndex: Int): Float {
+    override fun getInputValue(rowIndex: Int, columnIndex: Int): Float {
         return inputValues[rowIndex * inputArity + columnIndex]
     }
 }

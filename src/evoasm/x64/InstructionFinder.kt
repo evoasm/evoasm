@@ -10,9 +10,9 @@ class InstructionFinder<T : Number>(inputArity: Int, vararg values: T) {
     }
     private val interpreterOptions = InterpreterOptions.DEFAULT
     private val programSet = ProgramSet(interpreterOptions.instructions.size, 1)
-    private val programOutput : ValueProgramSetOutput<T> = when(values.first()) {
-        is Long -> LongProgramSetOutput(programSet, programInput) as ValueProgramSetOutput<T>
-        is Double -> DoubleProgramSetOutput(programSet, programInput) as ValueProgramSetOutput<T>
+    private val programOutput : NumberProgramSetOutput<T> = when(values.first()) {
+        is Long -> LongProgramSetOutput(programSet.size, programInput) as NumberProgramSetOutput<T>
+        is Double -> DoubleProgramSetOutput(programSet.size, programInput) as NumberProgramSetOutput<T>
         else -> throw IllegalArgumentException()
     }
     private val interpreter = Interpreter(programSet, programInput, programOutput, options = interpreterOptions)

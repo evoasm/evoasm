@@ -5,10 +5,13 @@ import kasm.Structure
 import kasm.ext.log2
 import kasm.x64.*
 
-abstract class ProgramSetOutput(programSet: ProgramSet, programSetInput: ProgramSetInput) {
+abstract class ProgramSetOutput(programSetSize: Int, programSetInput: ProgramSetInput) {
     protected abstract val structure: Structure
     internal val buffer get() = structure.buffer
     val size = programSetInput.size
+    val arity = programSetInput.arity
+
+    fun zero() = structure.zero()
 
     internal abstract fun emitStore(assembler: Assembler)
 
@@ -16,9 +19,9 @@ abstract class ProgramSetOutput(programSet: ProgramSet, programSetInput: Program
         require(Integer.bitCount(elementSize) == 1)
 
         with(assembler) {
-            mov(Interpreter.SCRATCH_REGISTER1, Interpreter.COUNTERS_REGISTER)
 
-            if(size != 1) {
+            if(size > 1) {
+                mov(Interpreter.SCRATCH_REGISTER1, Interpreter.COUNTERS_REGISTER)
                 shr(Interpreter.SCRATCH_REGISTER1, 16)
                 Interpreter.emitMultiplication(assembler,
                                                Interpreter.SCRATCH_REGISTER1,
@@ -34,21 +37,38 @@ abstract class ProgramSetOutput(programSet: ProgramSet, programSetInput: Program
                 block(Interpreter.SCRATCH_REGISTER1)
             } else {
                 // TODO: if elementSize == 1, can use scale, if address is 32-bit can use displacement
-                sal(Interpreter.SCRATCH_REGISTER1, log2(elementSize).toByte())
-                mov(Interpreter.SCRATCH_REGISTER2, address)
-                add(Interpreter.SCRATCH_REGISTER1,
-                    Interpreter.SCRATCH_REGISTER2)
+                if(arity > 1) {
+                    mov(Interpreter.SCRATCH_REGISTER1, Interpreter.COUNTERS_REGISTER)
+                    sal(Interpreter.SCRATCH_REGISTER1, log2(elementSize).toByte())
+                    mov(Interpreter.SCRATCH_REGISTER2, address)
+                    add(Interpreter.SCRATCH_REGISTER1,
+                        Interpreter.SCRATCH_REGISTER2)
+                } else {
+                    mov(Interpreter.SCRATCH_REGISTER1, address)
+                }
+
                 block(Interpreter.SCRATCH_REGISTER1)
+
             }
         }
     }
 }
 
-abstract class ValueProgramSetOutput<T : Number>(programSet: ProgramSet, programSetInput: ProgramSetInput) : ProgramSetOutput(programSet, programSetInput) {
+abstract class NumberProgramSetOutput<T : Number>(programSetSize: Int, programSetInput: ProgramSetInput) : ProgramSetOutput(programSetSize, programSetInput) {
+    interface Factory<T:Number> {
+        fun create(programSetSize: Int, programSetInput: ProgramSetInput) : NumberProgramSetOutput<T>
+    }
     abstract operator fun get(programIndex: Int, outputIndex: Int): T
 }
 
-class LongProgramSetOutput(programSet: ProgramSet, programSetInput: ProgramSetInput) : ValueProgramSetOutput<Long>(programSet, programSetInput) {
+class LongProgramSetOutput(programSetSize: Int, programSetInput: ProgramSetInput) : NumberProgramSetOutput<Long>(programSetSize, programSetInput) {
+
+    companion object : NumberProgramSetOutput.Factory<Long> {
+        override fun create(programSetSize: Int, programSetInput: ProgramSetInput): NumberProgramSetOutput<Long> {
+                return LongProgramSetOutput(programSetSize, programSetInput)
+        }
+    }
+
     override val structure: Structure get() = storage
     private val storage: Storage
 
@@ -57,7 +77,7 @@ class LongProgramSetOutput(programSet: ProgramSet, programSetInput: ProgramSetIn
     }
 
     init {
-        storage = Storage(programSet.size, programSetInput.size)
+        storage = Storage(programSetSize, programSetInput.size)
         storage.allocate()
     }
 
@@ -85,7 +105,7 @@ class LongProgramSetOutput(programSet: ProgramSet, programSetInput: ProgramSetIn
     }
 }
 
-class DoubleProgramSetOutput(programSet: ProgramSet, programSetInput: ProgramSetInput) : ValueProgramSetOutput<Double>(programSet, programSetInput) {
+class DoubleProgramSetOutput(programSetSize: Int, programSetInput: ProgramSetInput) : NumberProgramSetOutput<Double>(programSetSize, programSetInput) {
     override val structure: Structure get() = storage
     private val storage: Storage
 
@@ -94,7 +114,7 @@ class DoubleProgramSetOutput(programSet: ProgramSet, programSetInput: ProgramSet
     }
 
     init {
-        storage = Storage(programSet.size, programSetInput.size)
+        storage = Storage(programSetSize, programSetInput.size)
         storage.allocate()
     }
 
@@ -130,7 +150,8 @@ class DoubleProgramSetOutput(programSet: ProgramSet, programSetInput: ProgramSet
     }
 }
 
-class FloatProgramSetOutput(programSet: ProgramSet, programSetInput: ProgramSetInput) : ValueProgramSetOutput<Float>(programSet, programSetInput) {
+class FloatProgramSetOutput(programSetSize: Int, programSetInput: ProgramSetInput) : NumberProgramSetOutput<Float>(
+        programSetSize, programSetInput) {
     override val structure: Structure get() = storage
     private val storage: Storage
 
@@ -139,7 +160,7 @@ class FloatProgramSetOutput(programSet: ProgramSet, programSetInput: ProgramSetI
     }
 
     init {
-        storage = Storage(programSet.size, programSetInput.size)
+        storage = Storage(programSetSize, programSetInput.size)
         storage.allocate()
     }
 
@@ -164,7 +185,8 @@ class FloatProgramSetOutput(programSet: ProgramSet, programSetInput: ProgramSetI
     }
 }
 
-abstract class VectorProgramSetOutput<T : Number>(programSet: ProgramSet, programSetInput: ProgramSetInput, val vectorSize: VectorSize) : ProgramSetOutput(programSet, programSetInput) {
+abstract class VectorProgramSetOutput<T : Number>(programSetSize: Int, programSetInput: ProgramSetInput, val vectorSize: VectorSize) : ProgramSetOutput(
+        programSetSize, programSetInput) {
 
     override val structure: Structure get() = storage
     protected val storage: Storage
@@ -176,7 +198,7 @@ abstract class VectorProgramSetOutput<T : Number>(programSet: ProgramSet, progra
     }
 
     init {
-        storage = Storage(programSet.size, programSetInput.size, vectorSize.vectorRegisterType)
+        storage = Storage(programSetSize, programSetInput.size, vectorSize.vectorRegisterType)
         storage.allocate()
     }
 
@@ -217,7 +239,8 @@ abstract class VectorProgramSetOutput<T : Number>(programSet: ProgramSet, progra
 
 }
 
-class ByteVectorProgramSetOutput(programSet: ProgramSet, programSetInput: ProgramSetInput, vectorSize: VectorSize) : VectorProgramSetOutput<Byte>(programSet, programSetInput, vectorSize) {
+class ByteVectorProgramSetOutput(programSetSize: Int, programSetInput: ProgramSetInput, vectorSize: VectorSize) : VectorProgramSetOutput<Byte>(
+        programSetSize, programSetInput, vectorSize) {
     override fun get(programIndex: Int, outputIndex: Int, elementIndex: Int): Byte {
         return getByte(programIndex, outputIndex, elementIndex)
     }
@@ -237,7 +260,7 @@ class ByteVectorProgramSetOutput(programSet: ProgramSet, programSetInput: Progra
     }
 }
 
-class IntVectorProgramSetOutput(programSet: ProgramSet, programSetInput: ProgramSetInput, vectorSize: VectorSize) : VectorProgramSetOutput<Int>(programSet, programSetInput, vectorSize) {
+class IntVectorProgramSetOutput(programSetSize: Int, programSetInput: ProgramSetInput, vectorSize: VectorSize) : VectorProgramSetOutput<Int>(programSetSize, programSetInput, vectorSize) {
     override fun get(programIndex: Int, outputIndex: Int, elementIndex: Int): Int {
         return getInt(programIndex, outputIndex, elementIndex)
     }
@@ -257,7 +280,7 @@ class IntVectorProgramSetOutput(programSet: ProgramSet, programSetInput: Program
     }
 }
 
-class LongVectorProgramSetOutput(programSet: ProgramSet, programSetInput: ProgramSetInput, vectorSize: VectorSize) : VectorProgramSetOutput<Long>(programSet, programSetInput, vectorSize) {
+class LongVectorProgramSetOutput(programSetSize: Int, programSetInput: ProgramSetInput, vectorSize: VectorSize) : VectorProgramSetOutput<Long>(programSetSize, programSetInput, vectorSize) {
     override fun get(programIndex: Int, outputIndex: Int, elementIndex: Int): Long {
         return getLong(programIndex, outputIndex, elementIndex)
     }
@@ -277,7 +300,7 @@ class LongVectorProgramSetOutput(programSet: ProgramSet, programSetInput: Progra
     }
 }
 
-class ShortVectorProgramSetOutput(programSet: ProgramSet, programSetInput: ProgramSetInput, vectorSize: VectorSize) : VectorProgramSetOutput<Short>(programSet, programSetInput, vectorSize) {
+class ShortVectorProgramSetOutput(programSetSize: Int, programSetInput: ProgramSetInput, vectorSize: VectorSize) : VectorProgramSetOutput<Short>(programSetSize, programSetInput, vectorSize) {
     override fun get(programIndex: Int, outputIndex: Int, elementIndex: Int): Short {
         return getShort(programIndex, outputIndex, elementIndex)
     }
@@ -297,7 +320,7 @@ class ShortVectorProgramSetOutput(programSet: ProgramSet, programSetInput: Progr
     }
 }
 
-class FloatVectorProgramSetOutput(programSet: ProgramSet, programSetInput: ProgramSetInput, vectorSize: VectorSize) : VectorProgramSetOutput<Float>(programSet, programSetInput, vectorSize) {
+class FloatVectorProgramSetOutput(programSetSize: Int, programSetInput: ProgramSetInput, vectorSize: VectorSize) : VectorProgramSetOutput<Float>(programSetSize, programSetInput, vectorSize) {
 
     private fun emitSingleFloatStore(assembler: Assembler) {
         when(vectorSize) {
@@ -342,7 +365,7 @@ class FloatVectorProgramSetOutput(programSet: ProgramSet, programSetInput: Progr
 }
 
 
-class DoubleVectorProgramSetOutput(programSet: ProgramSet, programSetInput: ProgramSetInput, vectorSize: VectorSize) : VectorProgramSetOutput<Double>(programSet, programSetInput, vectorSize) {
+class DoubleVectorProgramSetOutput(programSetSize: Int, programSetInput: ProgramSetInput, vectorSize: VectorSize) : VectorProgramSetOutput<Double>(programSetSize, programSetInput, vectorSize) {
 
     private fun emitDoubleFloatStore(assembler: Assembler) {
         when(vectorSize) {

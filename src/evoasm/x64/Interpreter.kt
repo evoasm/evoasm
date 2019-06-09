@@ -13,7 +13,38 @@ inline class InterpreterOpcode(val code: UShort) {
 
 }
 
-data class InterpreterInstruction(val instruction: Instruction, val operandRegisters: List<Register>)
+
+class InterpreterInstructionParameters(vararg val registers: Register) : InstructionParameters {
+    override fun getGpRegister8(index: Int, isRead: Boolean, isWritten: Boolean) = registers[index] as GpRegister8
+    override fun getGpRegister16(index: Int, isRead: Boolean, isWritten: Boolean) = registers[index] as GpRegister16
+    override fun getGpRegister32(index: Int, isRead: Boolean, isWritten: Boolean) = registers[index] as GpRegister32
+    override fun getGpRegister64(index: Int, isRead: Boolean, isWritten: Boolean) = registers[index] as GpRegister64
+    override fun getMmRegister(index: Int, isRead: Boolean, isWritten: Boolean) = registers[index] as MmRegister
+    override fun getXmmRegister(index: Int, isRead: Boolean, isWritten: Boolean) = registers[index] as XmmRegister
+    override fun getYmmRegister(index: Int, isRead: Boolean, isWritten: Boolean) = registers[index] as YmmRegister
+    override fun getZmmRegister(index: Int, isRead: Boolean, isWritten: Boolean) = registers[index] as ZmmRegister
+    override fun getX87Register(index: Int, isRead: Boolean, isWritten: Boolean): X87Register = registers[index] as X87Register
+    override fun useSibd() = false
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as InterpreterInstructionParameters
+
+        if (!registers.contentEquals(other.registers)) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return registers.contentHashCode()
+    }
+
+
+}
+
+data class InterpreterInstruction(val instruction: Instruction, val instructionParameters: InstructionParameters) //,val operandRegisters: List<Register>)
 
 
 class Interpreter(val programSet: ProgramSet,
@@ -200,14 +231,14 @@ class Interpreter(val programSet: ProgramSet,
 //        }
 
 
-        fun getOperandRegisterSequence() : Sequence<List<Register>>  {
+        fun getOperandRegisterSequence() : Sequence<Array<Register>>  {
             val indices = IntArray(operandRegisterCount + 1)
             return generateSequence {
                 if(indices.last() != 0) {
                     return@generateSequence null
                 }
 
-                val result = List(operandRegisterCount) {
+                val result = Array(operandRegisterCount) {
                         operandRegisters[it][indices[it]]
                 }
 
@@ -223,7 +254,7 @@ class Interpreter(val programSet: ProgramSet,
             }
         }
 
-        internal var operandRegisterSequence: Sequence<List<Register>>? = null
+        internal var operandRegisterSequence: Sequence<Array<Register>>? = null
 
         override fun endTracing() {
             operandRegisterSequence = getOperandRegisterSequence()
@@ -362,7 +393,7 @@ class Interpreter(val programSet: ProgramSet,
 
     private val instructionParameters = object : InstructionParameters {
 
-        internal var operandRegisters = emptyList<Register>()
+        internal var operandRegisters = emptyArray<Register>()
         private val random = Random.Default
 
         override fun getGpRegister8(index: Int, isRead: Boolean, isWritten: Boolean): GpRegister8 {
@@ -481,7 +512,7 @@ class Interpreter(val programSet: ProgramSet,
     val maxOpcodeIndex get() = instructionCounter
     private var haltLinkPoint: Assembler.JumpLinkPoint? = null
     private var firstInstructionLinkPoint: Assembler.LongLinkPoint? = null
-    private val buffer = NativeBuffer(1024 * 35, CodeModel.LARGE)
+    internal val buffer = NativeBuffer(1024 * 35, CodeModel.LARGE)
     private val assembler = Assembler(buffer)
     private var emittedNopBytes = 0
 
@@ -531,11 +562,11 @@ class Interpreter(val programSet: ProgramSet,
     }
 
     fun getOpcode(instruction: Instruction, operandRegisters: List<Register>): InterpreterOpcode? {
-        return instructionMap[InterpreterInstruction(instruction, operandRegisters)]
+        return getOpcode(instruction, *operandRegisters.toTypedArray())
     }
 
-    fun getOpcode(instruction: Instruction, vararg operandRegisters : Register): InterpreterOpcode? {
-        return getOpcode(instruction, operandRegisters.toList())
+    fun getOpcode(instruction: Instruction, vararg operandRegisters: Register): InterpreterOpcode? {
+        return instructionMap[InterpreterInstruction(instruction, InterpreterInstructionParameters(*operandRegisters))]
     }
 
     fun getInstruction(opcode: InterpreterOpcode): InterpreterInstruction? {
@@ -696,7 +727,7 @@ class Interpreter(val programSet: ProgramSet,
                 for(divisorInstruction in getDivisorInstructions(it)) {
                     emitInstruction { interpreterOpcode ->
                         emitDivInstruction(it, divisorInstruction)
-                        instructionMap[InterpreterInstruction(it, listOf(divisorInstruction))] = interpreterOpcode
+                        instructionMap[InterpreterInstruction(it, InterpreterInstructionParameters(divisorInstruction))] = interpreterOpcode
                     }
                 }
             } else {
@@ -711,7 +742,7 @@ class Interpreter(val programSet: ProgramSet,
                     emitInstruction { interpreterOpcode ->
                         instructionParameters.operandRegisters = operandRegisters
                         it.encode(buffer.byteBuffer, instructionParameters)
-                        instructionMap[InterpreterInstruction(it, operandRegisters)] = interpreterOpcode
+                        instructionMap[InterpreterInstruction(it, InterpreterInstructionParameters(*operandRegisters))] = interpreterOpcode
                     }
                 }
 
@@ -817,7 +848,7 @@ class Interpreter(val programSet: ProgramSet,
 
                 emitInstruction {
 
-                    instructionMap[InterpreterInstruction(instruction as Instruction, listOf(destinationRegister, sourceRegister))] = it
+                    instructionMap[InterpreterInstruction(instruction as Instruction, InterpreterInstructionParameters(destinationRegister, sourceRegister))] = it
 
                     when (instruction) {
                         is R64m64R64Instruction  -> instruction.encode(buffer,
@@ -935,93 +966,6 @@ class Interpreter(val programSet: ProgramSet,
 
 }
 
-
-class Program(val size: Int) {
-    private val code = UShortArray(size)
-
-    operator fun set(index: Int, opcode: InterpreterOpcode) {
-        code[index] = opcode.code
-    }
-
-    inline fun forEach(action: (InterpreterOpcode) -> Unit) {
-        for (i in 0 until size) {
-            action(this[i])
-        }
-    }
-
-    operator fun get(index: Int): InterpreterOpcode {
-        return InterpreterOpcode(code[index])
-    }
-}
-
-class ProgramSet(val size: Int, val programSize: Int) {
-    internal val actualProgramSize = programSize + 1
-    val instructionCount = size * actualProgramSize
-    private val codeBuffer = NativeBuffer((instructionCount.toLong() + 1) * UShort.SIZE_BYTES, CodeModel.LARGE)
-    internal val byteBuffer = codeBuffer.byteBuffer
-    val address: Address = codeBuffer.address
-    private var initialized : Boolean = false
-
-    companion object {
-//        val HALT_INSTRUCTION = InterpreterOpcode(0U)
-//        val END_INSTRUCTION = InterpreterOpcode(2U)
-    }
-
-    internal fun initialize(haltOpcode: InterpreterOpcode, endOpcode: InterpreterOpcode) {
-        check(!initialized) {"cannot reuse program set"}
-        initialized = true
-        val shortBuffer = byteBuffer.asShortBuffer()
-        for (i in 0 until size) {
-            shortBuffer.put(i * actualProgramSize + programSize, endOpcode.code.toShort())
-        }
-        println("putting halt at ${instructionCount}")
-        shortBuffer.put(instructionCount, haltOpcode.code.toShort())
-    }
-
-    operator fun set(programIndex: Int, instructionIndex: Int, opcode: InterpreterOpcode) {
-        val offset = calculateOffset(programIndex, instructionIndex)
-        byteBuffer.putShort(offset, opcode.code.toShort())
-    }
-
-    internal inline fun transform(action: (InterpreterOpcode, Int, Int) -> InterpreterOpcode)  {
-        for(i in 0 until size) {
-            val programOffset = i * actualProgramSize * Short.SIZE_BYTES
-            for (j in 0 until programSize) {
-                val instructionOffset = programOffset + j * Short.SIZE_BYTES
-                val interpreterInstruction = InterpreterOpcode(byteBuffer.getShort(instructionOffset).toUShort())
-                byteBuffer.putShort(instructionOffset, action(interpreterInstruction, i, j).code.toShort())
-            }
-        }
-    }
-
-    operator fun get(programIndex: Int, instructionIndex: Int): InterpreterOpcode {
-        val offset = calculateOffset(programIndex, instructionIndex)
-        return InterpreterOpcode(byteBuffer.getShort(offset).toUShort())
-    }
-
-    private fun calculateOffset(programIndex: Int, instructionIndex: Int): Int {
-        return (programIndex * actualProgramSize + Math.min(programSize - 1, instructionIndex)) * Short.SIZE_BYTES
-    }
-
-    fun copyProgramTo(programIndex: Int, program: Program) {
-        val programOffset = programIndex * actualProgramSize * Short.SIZE_BYTES
-
-        for (i in 0 until programSize) {
-            val instructionOffset = programOffset + i * Short.SIZE_BYTES
-            program[i] = InterpreterOpcode(byteBuffer.getShort(instructionOffset).toUShort())
-        }
-    }
-
-    fun copyProgram(fromProgramIndex: Int, toProgramIndex: Int) {
-        val fromOffset = fromProgramIndex * actualProgramSize * Short.SIZE_BYTES
-        val toOffset = toProgramIndex * actualProgramSize * Short.SIZE_BYTES
-
-        for (i in 0 until actualProgramSize) {
-            val relativeOffset = i * Short.SIZE_BYTES
-            byteBuffer.putShort(toOffset + relativeOffset, byteBuffer.getShort(fromOffset + relativeOffset))
-        }
-    }
-}
 
 fun main() {
 //    val programInput = LongProgramSetInput(1, )

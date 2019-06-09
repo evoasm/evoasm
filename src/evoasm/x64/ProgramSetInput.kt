@@ -5,6 +5,11 @@ import kasm.Structure
 import kasm.x64.*
 
 abstract class ProgramSetInput(val size: Int, val arity: Int) {
+
+    interface Factory {
+        fun create(size: Int, arity: Int) : ProgramSetInput
+    }
+
     init {
         require(size > 0)
         require(size <= Short.MAX_VALUE)
@@ -56,12 +61,23 @@ abstract class ProgramSetInput(val size: Int, val arity: Int) {
 }
 
 abstract class NumberProgramSetInput<T : Number>(size: Int, arity: Int) : ProgramSetInput(size, arity) {
+
+    interface Factory<T: Number> : ProgramSetInput.Factory {
+        override fun create(size: Int, arity: Int) : NumberProgramSetInput<T>
+    }
+
     abstract operator fun set(rowIndex: Int, columnIndex: Int, value: T)
 }
 
 
 class LongProgramSetInput(size: Int, arity: Int) : NumberProgramSetInput<Long>(size, arity) {
     private val storage: Storage
+
+    companion object : Factory<Long> {
+        override fun create(size: Int, arity: Int): NumberProgramSetInput<Long> {
+            return LongProgramSetInput(size, arity)
+        }
+    }
 
     private class Storage(size: Int, arity: Int) : Structure() {
         val field = longField(size, arity)
@@ -88,6 +104,12 @@ class LongProgramSetInput(size: Int, arity: Int) : NumberProgramSetInput<Long>(s
 class DoubleProgramSetInput(size: Int, arity: Int) : NumberProgramSetInput<Double>(size, arity) {
     private val storage: Storage
 
+    companion object : Factory<Double> {
+        override fun create(size: Int, arity: Int): NumberProgramSetInput<Double> {
+            return DoubleProgramSetInput(size, arity)
+        }
+    }
+
     private class Storage(size: Int, arity: Int) : Structure() {
         val field = doubleField(size, arity)
     }
@@ -112,6 +134,13 @@ class DoubleProgramSetInput(size: Int, arity: Int) : NumberProgramSetInput<Doubl
 
 class FloatProgramSetInput(size: Int, arity: Int) : NumberProgramSetInput<Float>(size, arity) {
     private val storage: Storage
+
+
+    companion object : Factory<Float> {
+        override fun create(size: Int, arity: Int): NumberProgramSetInput<Float> {
+            return FloatProgramSetInput(size, arity)
+        }
+    }
 
     private class Storage(size: Int, arity: Int) : Structure() {
         val field = floatField(size, arity)
@@ -143,6 +172,7 @@ enum class VectorSize(val vectorRegisterType: VectorRegisterType, val byteSize: 
 }
 
 abstract class VectorProgramSetInput<T : Number>(size: Int, arity: Int, val vectorSize: VectorSize) : ProgramSetInput(size, arity)  {
+
 
     abstract operator fun set(rowIndex: Int, columnIndex: Int, elementIndex: Int, value: T)
     abstract operator fun set(rowIndex: Int, columnIndex: Int, values: Array<T>)
