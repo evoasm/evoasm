@@ -3,7 +3,6 @@ package evoasm.x64
 import evoasm.measureTimeSeconds
 import kasm.x64.BitRange
 import kasm.x64.XmmRegister
-import kotlin.random.Random
 import evoasm.FastRandom
 import kasm.x64.VroundssXmmXmmXmmm32Imm8
 
@@ -63,27 +62,8 @@ abstract class AbstractPopulation(val options: PopulationOptions) {
     private var currentGeneration = 0
 
     private fun minorCycle() {
-        val maxOffspringCount = options.maxOffspringRatio * populationSize;
-        var minLoss = losses[0]
-        var winnerIndex = 0
-        var currentOffspringCount = 0
-        val mutationRate = options.mutationRate
-        val maxOpcodeIndex = interpreter.maxOpcodeIndex
-
-        for (i in 1 until losses.lastIndex) {
-            val loss = losses[i]
-
-            if (loss <= minLoss || currentOffspringCount >= maxOffspringCount) {
-                minLoss = Math.min(loss, minLoss)
-                winnerIndex = i
-                currentOffspringCount = 0
-            }
-
-            programSet.copyProgram(winnerIndex, i) { interpreterOpcode: InterpreterOpcode, instructionIndex: Int ->
-                mutateOpcode(interpreterOpcode, random, mutationRate, maxOpcodeIndex)
-            }
-            currentOffspringCount++
-        }
+        majorSelect()
+        majorReproduce()
     }
 
     private fun majorCycle() {
@@ -121,6 +101,10 @@ abstract class AbstractPopulation(val options: PopulationOptions) {
             val baseIndex = i * tournamentSize
             var minIndex = baseIndex
             var minLoss = losses[baseIndex]
+            if(minLoss.isNaN()) {
+                minLoss = Float.POSITIVE_INFINITY
+            }
+
             for (j in 1 until tournamentSize) {
                 val index = baseIndex + j
                 val loss = losses[index]
@@ -186,7 +170,7 @@ abstract class AbstractPopulation(val options: PopulationOptions) {
             updateBest()
         }
 
-        println("Interpreter took $runS ($thisRunS)")
+//        println("Interpreter took $runS ($thisRunS)")
 //        println("-------------------------")
 //        println(bestLoss)
 //        println("AVGLOSS: ${losses.filter { it.isFinite() }.average()}")
@@ -234,7 +218,7 @@ abstract class AbstractPopulation(val options: PopulationOptions) {
 
     fun compile(program: Program) {
         println(interpreter.buffer.toByteString())
-        val programSetInput =  FloatProgramSetInput(1, interpreter.input.arity)
+        val programSetInput =  FloatProgramSetInput(1, interpreter.inputs[0].arity)
         val programSetOutput = FloatProgramSetOutput(1, programSetInput)
         val compiledProgram = CompiledNumberProgram(program, interpreter, programSetInput, programSetOutput)
         for (i in 1..5) {
@@ -352,7 +336,6 @@ abstract class NumberPopulation<T : Number>(val sampleSet: NumberSampleSet<T>,
 
             losses[programIndex] = loss
         }
-        println(losses.contentToString())
         programSetOutput.zero()
     }
 
@@ -415,18 +398,18 @@ class PopulationOptions(val size: Int,
 fun main() {
 
     val options = PopulationOptions(
-            60,
+            120,
             4,
-            123456,
+            1234567,
             12,
             InterpreterOptions(instructions = InstructionGroup.ARITHMETIC_SS_AVX_XMM_INSTRUCTIONS.instructions.filterNot { it == VroundssXmmXmmXmmm32Imm8 },
                                moveInstructions = listOf(),
                                compressOpcodes = false,
-                               unsafe = true),
+                               unsafe = false),
             0.01f,
             demeSize = 10,
             majorGenerationFrequency = 1,
-            maxOffspringRatio = 0.7
+            maxOffspringRatio = 0.05
                                    )
 
     val lossFunction = L1Norm()
@@ -447,22 +430,23 @@ fun main() {
 
 
     val population = FloatPopulation(sampleSet, options)
-
+    var found = false
     val seconds = measureTimeSeconds {
 
         for (i in 0 until 35_000) {
             population.evaluate()
             population.nextGeneration()
             if (population.bestLoss == 0f) {
-                println("found 0, done")
+                println("found 0, done after $i gens")
                 population.compileBest()
                 population.printBest()
+                found = true
                 break
             }
         }
     }
 
-    println("Found after ${seconds}")
+    if(found) println("Found after ${seconds}")
 
 }
 
