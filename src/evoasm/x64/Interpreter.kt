@@ -1,13 +1,14 @@
 package evoasm.x64
 
+import evoasm.measureTimeSeconds
 import kasm.*
+import kasm.ext.enumSetOf
 import kasm.ext.log2
 import kasm.ext.toEnumSet
 import kasm.x64.*
 import kasm.x64.GpRegister64.*
 import kotlin.IllegalArgumentException
 import kotlin.random.Random
-import kotlin.system.measureNanoTime
 
 inline class InterpreterOpcode(val code: UShort) {
 
@@ -47,10 +48,13 @@ class InterpreterInstructionParameters(vararg val registers: Register) : Instruc
 data class InterpreterInstruction(val instruction: Instruction, val instructionParameters: InstructionParameters) //,val operandRegisters: List<Register>)
 
 
-class Interpreter(val programSet: ProgramSet,
-                  val input: ProgramSetInput,
-                  val output: ProgramSetOutput,
+class Interpreter(val programSets: List<ProgramSet>,
+                  val inputs: List<ProgramSetInput>,
+                  val outputs: List<ProgramSetOutput>,
                   val options: InterpreterOptions = InterpreterOptions.DEFAULT) {
+
+    constructor(programSet: ProgramSet, input: ProgramSetInput, output: ProgramSetOutput, options: InterpreterOptions = InterpreterOptions.DEFAULT) :
+            this(listOf(programSet), listOf(input), listOf(output), options)
 
     companion object {
         fun emitMultiplication(assembler: Assembler, register: GpRegister64, multiplier: Int) {
@@ -532,7 +536,9 @@ class Interpreter(val programSet: ProgramSet,
     init {
         emit()
 
-        programSet.initialize(getHaltOpcode(), getEndOpcode())
+        programSets.forEachIndexed { index, programSet ->
+            programSet.initialize(getHaltOpcode(), getEndOpcode(index))
+        }
 
 //        println(instructions.contentToString())
 //        check(getEndOpcode() == ProgramSet.END_INSTRUCTION
@@ -548,13 +554,18 @@ class Interpreter(val programSet: ProgramSet,
 
     }
 
-    internal fun getHaltOpcode(): InterpreterOpcode {
-        return InterpreterOpcode(instructions[0].toUShort());
+//    internal fun getStartOpcode(threadIndex: Int): InterpreterOpcode {
+//        return InterpreterOpcode(instructions[0 * options.threadCount + threadIndex].toUShort());
+//    }
+
+    internal fun getEndOpcode(threadIndex: Int): InterpreterOpcode {
+        return InterpreterOpcode(instructions[0 * options.threadCount + threadIndex].toUShort());
     }
 
-    internal fun getEndOpcode(): InterpreterOpcode {
-        return InterpreterOpcode(instructions[1].toUShort());
+    internal fun getHaltOpcode(): InterpreterOpcode {
+        return InterpreterOpcode(instructions[1 * options.threadCount].toUShort());
     }
+
 
     fun getOpcode(opcodeIndex: Int): InterpreterOpcode {
 //        require(opcodeIndex < instructionCounter) { "invalid opcode index $opcodeIndex (max opcode index is $instructionCounter)" }
@@ -607,20 +618,25 @@ class Interpreter(val programSet: ProgramSet,
         return Disassembler.disassemble(codeArray)
     }
 
-    private var programStartLabel: Assembler.Label? = null
 
-    private fun emitEndInstruction() {
+    private fun emitEndInstructions() {
+        repeat(options.threadCount) {
+            emitEndInstruction(it)
+        }
+    }
+
+    private fun emitEndInstruction(threadIndex: Int) {
         with(assembler) {
             emitInstruction {
                 // store result
-                emitOutputStore()
-                if(input.size != 1) {
+                emitOutputStore(threadIndex)
+                if(inputs[threadIndex].size != 1) {
                     val inputCounterSubRegister = COUNTERS_REGISTER.subRegister16
                     // decrease input count
                     dec(inputCounterSubRegister)
                     ifNotEqual(
                             {
-                                sub(IP_REGISTER, OPCODE_SIZE * (programSet.programSize + 1))
+                                sub(IP_REGISTER, OPCODE_SIZE * (programSets[threadIndex].programSize + 1))
                             },
                             {
                                 // increment program counter
@@ -628,7 +644,7 @@ class Interpreter(val programSet: ProgramSet,
                                 //inc(COUNTERS_REGISTER)
 
                                 // reset input counter
-                                mov(inputCounterSubRegister, input.size.toShort())
+                                mov(inputCounterSubRegister, inputs[threadIndex].size.toShort())
                             }
                               )
                 } else {
@@ -641,7 +657,7 @@ class Interpreter(val programSet: ProgramSet,
                 sahfAh()
 
                 // load inputs
-                input.emitLoad(assembler)
+                inputs[threadIndex].emitLoad(assembler)
 
             }
         }
@@ -676,20 +692,47 @@ class Interpreter(val programSet: ProgramSet,
         }
     }
 
-
     private fun emitInterpreterProlog() {
+
         with(assembler) {
             // let IP point to first opcode
             emitRflagsReset()
-            mov(IP_REGISTER, programSet.address.toLong())
+
             firstInstructionLinkPoint = mov(FIRST_INSTRUCTION_ADDRESS_REGISTER)
-            if(input.size == 1) {
-                xor(COUNTERS_REGISTER, COUNTERS_REGISTER)
-            } else {
-                mov(COUNTERS_REGISTER, input.size)
+
+            var perThreadPrologLinkPoint: Assembler.LongLinkPoint? = null
+            if(options.threadCount > 1) {
+                //TODO: directly multiply RAX by size
+                perThreadPrologLinkPoint = mov(SCRATCH_REGISTER1)
+                imul(SCRATCH_REGISTER1, RAX)
+                jmp(SCRATCH_REGISTER1)
             }
-            input.emitLoad(assembler)
-            emitDispatch()
+
+            var threadPrologSize = -1
+            repeat(options.threadCount) { threadIndex ->
+                val thisThreadPrologAddress = buffer.positionAddress
+
+                mov(IP_REGISTER, programSets[threadIndex].address.toLong())
+                if (inputs[threadIndex].size == 1) {
+                    xor(COUNTERS_REGISTER, COUNTERS_REGISTER)
+                } else {
+                    mov(COUNTERS_REGISTER, inputs[threadIndex].size)
+                }
+                inputs[threadIndex].emitLoad(assembler)
+                emitDispatch()
+
+                val thisThreadPrologSize = (buffer.positionAddress - thisThreadPrologAddress).toInt()
+                if(threadPrologSize == -1) {
+                    threadPrologSize = thisThreadPrologSize
+                } else {
+                    check(threadPrologSize == thisThreadPrologSize)
+                }
+            }
+
+            if(options.threadCount > 1) {
+                perThreadPrologLinkPoint!!.link(threadPrologSize.toLong())
+            }
+
             align(INSTRUCTION_ALIGNMENT)
         }
     }
@@ -699,17 +742,33 @@ class Interpreter(val programSet: ProgramSet,
         assembler.link(haltLinkPoint!!)
     }
 
+//    private fun emitStartInstructions() {
+//        repeat(options.threadCount) {
+//            emitStartInstruction(it)
+//        }
+//    }
+
+//    private fun emitStartInstruction(threadIndex: Int) {
+//        inputs[threadIndex].emitLoad(assembler)
+//        emitDispatch()
+//    }
+
     private fun emit() {
-        assembler.emitStackFrame {
+        val argumentRegisters = if(options.threadCount > 1) {
+            enumSetOf(RAX)
+        } else {
+            enumSetOf()
+        }
+        assembler.emitStackFrame(argumentRegisters = argumentRegisters) {
             emitInterpreterProlog()
-            // IMPORTANT: must be first two instructions
 
             val firstInstructionAddress = buffer.address.toLong() + buffer.position()
             println("First inst addr ${Address(firstInstructionAddress.toULong())}")
             firstInstructionLinkPoint!!.link(firstInstructionAddress)
 
+            // IMPORTANT: must be first instructions, in this order
+            emitEndInstructions()
             emitHaltInstruction()
-            emitEndInstruction()
 
             emitInstructions()
             emitMoveInstructions()
@@ -880,8 +939,8 @@ class Interpreter(val programSet: ProgramSet,
         }
     }
 
-    private fun emitOutputStore() {
-        output.emitStore(assembler)
+    private fun emitOutputStore(threadIndex: Int) {
+        outputs[threadIndex].emitStore(assembler)
     }
 
     private fun emitInstruction(dispatch: Boolean = true, block: (InterpreterOpcode) -> Unit) {
@@ -925,6 +984,10 @@ class Interpreter(val programSet: ProgramSet,
     private fun getInstructionOffset(opcode: InterpreterOpcode) = getInstructionOffset(opcode.code)
 
     fun run() {
+        run(0)
+    }
+
+    fun run(threadIndex: Int) {
 //        println("instruction counter: $instructionCounter")
 //        println("running address is ${buffer.address}")
 //        println("byte code address is ${programSet.byteBuffer.address}")
@@ -934,9 +997,17 @@ class Interpreter(val programSet: ProgramSet,
 //        println("third instruction is ${programSet.byteBuffer.asShortBuffer().get(2)}")
 //        println("instruction address ${instructions.contentToString()}")
         if(options.unsafe) {
-            buffer.executeUnsafe()
+            if(options.threadCount > 1) {
+                buffer.executeUnsafe(threadIndex.toLong())
+            } else {
+                buffer.executeUnsafe()
+            }
         } else {
-            buffer.execute()
+            if(options.threadCount > 1) {
+                buffer.execute(threadIndex.toLong())
+            } else {
+                buffer.execute()
+            }
         }
     }
 
@@ -953,16 +1024,15 @@ class Interpreter(val programSet: ProgramSet,
                           emittedNopBytes / emittedBytes)
     }
 
-    fun runAndMeasure(): RunMeasurements {
-        val nanoTime = measureNanoTime {
-            run()
-        }.toDouble()
+    fun runAndMeasure() = runAndMeasure(0)
 
-        val elapsedSeconds = nanoTime / 1E9
-        val instructionsPerSecond = (programSet.instructionCount * input.size) / elapsedSeconds
+    fun runAndMeasure(threadIndex: Int): RunMeasurements {
+        val elapsedSeconds = measureTimeSeconds {
+            run(threadIndex)
+        }
+        val instructionsPerSecond = (programSets[threadIndex].instructionCount * inputs[threadIndex].size) / elapsedSeconds
         return RunMeasurements(elapsedSeconds, instructionsPerSecond)
     }
-
 
 }
 
