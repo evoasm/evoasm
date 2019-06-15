@@ -68,6 +68,12 @@ class Program(val size: Int) {
         }
     }
 
+    inline fun forEachIndexed(action: (InterpreterOpcode, Int) -> Unit) {
+        for (i in 0 until size) {
+            action(this[i], i)
+        }
+    }
+
     operator fun get(index: Int): InterpreterOpcode {
         return InterpreterOpcode(code[index])
     }
@@ -79,6 +85,7 @@ class ProgramSet(val size: Int, val programSize: Int) {
     private val codeBuffer = NativeBuffer((instructionCount.toLong() + 1) * UShort.SIZE_BYTES,
                                                CodeModel.LARGE)
     internal val byteBuffer = codeBuffer.byteBuffer
+    private val shortBuffer = byteBuffer.asShortBuffer()
     val address: Address = codeBuffer.address
     private var initialized : Boolean = false
 
@@ -91,6 +98,8 @@ class ProgramSet(val size: Int, val programSize: Int) {
         check(!initialized) {"cannot reuse program set"}
         initialized = true
         val shortBuffer = byteBuffer.asShortBuffer()
+
+//        shortBuffer.put(0, startOpcode.code.toShort())
         for (i in 0 until size) {
             shortBuffer.put(i * actualProgramSize + programSize, endOpcode.code.toShort())
         }
@@ -124,7 +133,7 @@ class ProgramSet(val size: Int, val programSize: Int) {
     }
 
     fun copyProgramTo(programIndex: Int, program: Program) {
-        val programOffset = programIndex * actualProgramSize * Short.SIZE_BYTES
+        val programOffset = calculateOffset(programIndex, 0)
 
         for (i in 0 until programSize) {
             val instructionOffset = programOffset + i * Short.SIZE_BYTES
@@ -133,8 +142,8 @@ class ProgramSet(val size: Int, val programSize: Int) {
     }
 
     internal inline fun copyProgram(fromProgramIndex: Int, toProgramIndex: Int, transformer: (InterpreterOpcode, Int) -> InterpreterOpcode = { io, o -> io}) {
-        val fromOffset = fromProgramIndex * actualProgramSize * Short.SIZE_BYTES
-        val toOffset = toProgramIndex * actualProgramSize * Short.SIZE_BYTES
+        val fromOffset = calculateOffset(fromProgramIndex, 0)
+        val toOffset = calculateOffset(toProgramIndex, 0)
         val byteBuffer = this.byteBuffer
 
         for (i in 0 until actualProgramSize) {
