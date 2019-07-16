@@ -11,14 +11,14 @@ class InstructionFinder<T : Number>(inputArity: Int, vararg values: T) {
     private val interpreterOptions = InterpreterOptions.DEFAULT
     private val programSet = ProgramSet(interpreterOptions.instructions.size, 1)
     private val programOutput : NumberProgramSetOutput<T> = when(values.first()) {
-        is Long -> LongProgramSetOutput(programSet.size, programInput) as NumberProgramSetOutput<T>
-        is Double -> DoubleProgramSetOutput(programSet.size, programInput) as NumberProgramSetOutput<T>
+        is Long -> LongProgramSetOutput(programSet.programCount, programInput) as NumberProgramSetOutput<T>
+        is Double -> DoubleProgramSetOutput(programSet.programCount, programInput) as NumberProgramSetOutput<T>
         else -> throw IllegalArgumentException()
     }
     private val interpreter = Interpreter(programSet, programInput, programOutput, options = interpreterOptions)
 
     init {
-        for(i in 0 until programSet.size) {
+        for(i in 0 until programSet.programCount) {
             programSet.set(i, 0, interpreter.getOpcode(i))
         }
     }
@@ -35,7 +35,7 @@ class InstructionFinder<T : Number>(inputArity: Int, vararg values: T) {
         interpreter.run()
 
         outerFor@
-        for (i in 0 until programSet.size) {
+        for (i in 0 until programSet.programCount) {
             for(rowIndex in rows.indices) {
                 if(!accept(programOutput[i, rowIndex], rows[rowIndex].last())) {
                     continue@outerFor

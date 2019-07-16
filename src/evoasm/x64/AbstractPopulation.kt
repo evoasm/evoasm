@@ -5,6 +5,8 @@ import kasm.x64.BitRange
 import kasm.x64.XmmRegister
 import evoasm.FastRandom
 import kasm.x64.VroundssXmmXmmXmmm32Imm8
+import java.util.concurrent.Callable
+import java.util.concurrent.Executors
 
 interface SelectionOperator {
     fun select()
@@ -50,15 +52,17 @@ abstract class AbstractPopulation(val options: PopulationOptions) {
     protected val random = FastRandom(options.seed)
     protected val populationSize = options.size
     protected val losses = FloatArray(populationSize)
-    protected val programSet = ProgramSet(populationSize, options.programSize)
+    private val threadPopulationSize = populationSize / options.interpreterOptions.threadCount
+    protected val programSet = ProgramSet(populationSize, options.programSize, options.interpreterOptions.threadCount)
 
 
     init {
         require(options.size % options.demeSize == 0)
+        require(options.size % options.interpreterOptions.threadCount == 0)
     }
 
     protected abstract val interpreter: Interpreter // = Interpreter(programSet, programSetInput, programSetOutput, options = options.interpreterOptions)
-    private val bestProgram = Program(programSet.programSize)
+    private val bestProgram = Program(options.programSize)
     private var currentGeneration = 0
 
     private fun minorCycle() {
@@ -85,13 +89,16 @@ abstract class AbstractPopulation(val options: PopulationOptions) {
 
 
     protected fun seed() {
-        val maxOpcodeIndex = interpreter.maxOpcodeIndex
-        for (i in 0 until programSet.size) {
+        val opcodeCount = interpreter.opcodeCount
+        for (i in 0 until programSet.programCount) {
             for (j in 0 until programSet.programSize) {
-                val interpreterInstruction = interpreter.getOpcode(this.random.nextInt(maxOpcodeIndex))
+                val opcodeIndex = this.random.nextInt(opcodeCount)
+                val interpreterInstruction = interpreter.getOpcode(opcodeIndex)
                 programSet[i, j] = interpreterInstruction
             }
         }
+
+//        println(programSet.toString(interpreter))
     }
 
     private fun minorSelect(): Boolean {
@@ -101,7 +108,7 @@ abstract class AbstractPopulation(val options: PopulationOptions) {
             val baseIndex = i * tournamentSize
             var minIndex = baseIndex
             var minLoss = losses[baseIndex]
-            if(minLoss.isNaN()) {
+            if (minLoss.isNaN()) {
                 minLoss = Float.POSITIVE_INFINITY
             }
 
@@ -157,11 +164,42 @@ abstract class AbstractPopulation(val options: PopulationOptions) {
     private var runS: Double = 0.0
     private var gen = 0
 
+    private var threadPool = Executors.newFixedThreadPool(options.interpreterOptions.threadCount)
+    private var taskList = (0 until options.interpreterOptions.threadCount).map {
+        Callable<Boolean> {
+//            println("running interpreter ${it}")
+            val t = measureTimeSeconds {
+                interpreter.run(it)
+            }
+            println("threaded eval took $t")
+//            println("/running interpreter ${it}")
+            true
+        }
+    }
+
+    fun shutdown() {
+        threadPool.shutdown()
+    }
+
     fun evaluate() {
         gen++
 
-        val thisRunS = measureTimeSeconds {
-            interpreter.run()
+        var thisRunS = 0.0
+        if (interpreter.haveMultipleThreads) {
+            thisRunS = measureTimeSeconds {
+                val results = threadPool.invokeAll(taskList)
+                for(result in results) {
+                    result.get()
+                }
+//                interpreter.run(0)
+//                interpreter.run(1)
+            }
+        } else {
+
+            thisRunS = measureTimeSeconds {
+                interpreter.run()
+            }
+            println("single eval took $thisRunS")
         }
         runS = (1.0 / gen) * thisRunS + (1.0 - (1.0 / gen)) * runS
 
@@ -218,7 +256,7 @@ abstract class AbstractPopulation(val options: PopulationOptions) {
 
     fun compile(program: Program) {
         println(interpreter.buffer.toByteString())
-        val programSetInput =  FloatProgramSetInput(1, interpreter.inputs[0].arity)
+        val programSetInput = FloatProgramSetInput(1, interpreter.input.arity)
         val programSetOutput = FloatProgramSetOutput(1, programSetInput)
         val compiledProgram = CompiledNumberProgram(program, interpreter, programSetInput, programSetOutput)
         for (i in 1..5) {
@@ -288,10 +326,14 @@ abstract class AbstractPopulation(val options: PopulationOptions) {
 
 //    protected val maxInstructionOpcode = options.interpreterOptions.instructions.size
 
-    private fun mutateOpcode(interpreterOpcode: InterpreterOpcode, random: FastRandom, mutationRate: Float, maxOpcodeIndex: Int): InterpreterOpcode {
+    private fun mutateOpcode(interpreterOpcode: InterpreterOpcode,
+                             random: FastRandom,
+                             mutationRate: Float,
+                             opcodeCount: Int): InterpreterOpcode {
         if (this.random.nextFloat() < mutationRate) {
-            val opcodeIndex = this.random.nextInt(maxOpcodeIndex)
-            return interpreter.getOpcode(opcodeIndex)
+            val opcodeIndex = this.random.nextInt(opcodeCount)
+            val newOpcode = this.interpreter.getOpcode(opcodeIndex)
+            return newOpcode
         } else {
             return interpreterOpcode
         }
@@ -299,11 +341,15 @@ abstract class AbstractPopulation(val options: PopulationOptions) {
 
     private fun mutatePrograms() {
 
-        val maxOpcodeIndex = interpreter.maxOpcodeIndex
+        val opcodeCount = interpreter.opcodeCount
         val mutationRate = options.mutationRate
 
-        programSet.transform { interpreterOpcode: InterpreterOpcode, programIndex: Int, instructionIndex: Int ->
-            mutateOpcode(interpreterOpcode, random, mutationRate, maxOpcodeIndex)
+        programSet.transform { interpreterOpcode: InterpreterOpcode, threadIndex: Int, programIndex: Int, instructionIndex: Int ->
+            if (interpreterOpcode == interpreter.getHaltOpcode()) {
+                println("${threadIndex} ${programIndex}, ${instructionIndex}, ${interpreterOpcode}");
+                throw RuntimeException()
+            }
+            mutateOpcode(interpreterOpcode, random, mutationRate, opcodeCount)
         }
     }
 
@@ -326,7 +372,7 @@ abstract class NumberPopulation<T : Number>(val sampleSet: NumberSampleSet<T>,
                 loss += Math.abs(expectedOutput - actualOutput)
             }
 
-            if(loss == 0f) {
+            if (loss == 0f) {
                 for (inputIndex in 0 until programSetInput.size) {
                     val actualOutput = programSetOutput[programIndex, inputIndex].toFloat()
                     val expectedOutput = sampleSet.getOutputValue(inputIndex).toFloat()
@@ -398,14 +444,16 @@ class PopulationOptions(val size: Int,
 fun main() {
 
     val options = PopulationOptions(
-            120,
+            32_000,
             4,
-            1234567,
+            123456,
             12,
             InterpreterOptions(instructions = InstructionGroup.ARITHMETIC_SS_AVX_XMM_INSTRUCTIONS.instructions.filterNot { it == VroundssXmmXmmXmmm32Imm8 },
                                moveInstructions = listOf(),
                                compressOpcodes = false,
-                               unsafe = false),
+                               forceMultithreading = false,
+                               threadCount = 2,
+                               unsafe = true),
             0.01f,
             demeSize = 10,
             majorGenerationFrequency = 1,
@@ -431,22 +479,34 @@ fun main() {
 
     val population = FloatPopulation(sampleSet, options)
     var found = false
+    var generations = 0
     val seconds = measureTimeSeconds {
 
         for (i in 0 until 35_000) {
             population.evaluate()
             population.nextGeneration()
+            if (i % 100 == 0) {
+                println(population.bestLoss);
+            }
             if (population.bestLoss == 0f) {
-                println("found 0, done after $i gens")
-                population.compileBest()
-                population.printBest()
                 found = true
+                generations = i
                 break
             }
         }
     }
 
-    if(found) println("Found after ${seconds}")
 
+
+    if (found) {
+        println("Found after ${seconds}")
+        println("found 0, done after $generations gens")
+        population.compileBest()
+        println("ok compiled best")
+        population.printBest()
+        println("ok compiled print")
+    }
+
+    population.shutdown()
 }
 

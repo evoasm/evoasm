@@ -52,6 +52,7 @@ abstract class ProgramSetOutput(programSetSize: Int, programSetInput: ProgramSet
             }
         }
     }
+
 }
 
 abstract class NumberProgramSetOutput<T : Number>(programSetSize: Int, programSetInput: ProgramSetInput) : ProgramSetOutput(programSetSize, programSetInput) {
@@ -324,7 +325,7 @@ class FloatVectorProgramSetOutput(programSetSize: Int, programSetInput: ProgramS
 
     private fun emitSingleFloatStore(assembler: Assembler) {
         when(vectorSize) {
-            VectorSize.BITS_64  -> throw IllegalArgumentException("invalid vector size $vectorSize")
+            VectorSize.BITS_64  -> throw IllegalArgumentException("invalid vector programCount $vectorSize")
             VectorSize.BITS_128 -> {
                 val outputRegister = Interpreter.XMM_REGISTERS.first()
                 emitStore(assembler, storage.field.address, vectorSize.byteSize) { baseRegister ->
@@ -369,7 +370,7 @@ class DoubleVectorProgramSetOutput(programSetSize: Int, programSetInput: Program
 
     private fun emitDoubleFloatStore(assembler: Assembler) {
         when(vectorSize) {
-            VectorSize.BITS_64  -> throw IllegalArgumentException("invalid vector size $vectorSize")
+            VectorSize.BITS_64  -> throw IllegalArgumentException("invalid vector programCount $vectorSize")
             VectorSize.BITS_128 -> {
                 val outputRegister = Interpreter.XMM_REGISTERS.first()
                 emitStore(assembler, storage.field.address, vectorSize.byteSize) { baseRegister ->

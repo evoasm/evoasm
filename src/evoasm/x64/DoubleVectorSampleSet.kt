@@ -5,7 +5,7 @@ class DoubleVectorSampleSet(inputArity: Int, vectorSize: VectorSize, vararg valu
     private val inputValues : DoubleArray
 
     init {
-        // size = values.size / rowLength
+        // programCount = values.programCount / rowLength
         outputValues = DoubleArray(size * elementsInVector){
             val row = it / elementsInVector
             val column = it % elementsInVector

@@ -1,14 +1,13 @@
 package evoasm.x64
 
 import evoasm.measureTimeSeconds
-import kotlin.math.absoluteValue
 import kotlin.random.Random
 
 class DoubleVectorPopulation(sampleSet: DoubleVectorSampleSet,
                              options: PopulationOptions) : VectorPopulation<Double>(sampleSet, options) {
 
     override val programSetInput = DoubleVectorProgramSetInput(sampleSet.size, sampleSet.inputArity, sampleSet.vectorSize)
-    override val programSetOutput = DoubleVectorProgramSetOutput(programSet.size, programSetInput, sampleSet.vectorSize)
+    override val programSetOutput = DoubleVectorProgramSetOutput(programSet.programCount, programSetInput, sampleSet.vectorSize)
     override val interpreter = Interpreter(programSet, programSetInput, programSetOutput, options = options.interpreterOptions)
 
     init {

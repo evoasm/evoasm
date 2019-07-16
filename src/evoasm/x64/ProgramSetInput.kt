@@ -323,7 +323,7 @@ class FloatVectorProgramSetInput(size: Int, arity: Int, vectorSize: VectorSize) 
                     assembler.vmovaps(register, AddressExpression256(baseRegister))
                 }
             VectorSize.BITS_512 -> TODO()
-            else -> throw IllegalArgumentException("invalid vector size $vectorSize")
+            else -> throw IllegalArgumentException("invalid vector programCount $vectorSize")
         }
     }
 
@@ -364,7 +364,7 @@ class DoubleVectorProgramSetInput(size: Int, arity: Int, vectorSize: VectorSize)
                     assembler.vmovapd(register, AddressExpression256(baseRegister))
                 }
             VectorSize.BITS_512 -> TODO()
-            else -> throw IllegalArgumentException("invalid vector size $vectorSize")
+            else -> throw IllegalArgumentException("invalid vector programCount $vectorSize")
         }
     }
 

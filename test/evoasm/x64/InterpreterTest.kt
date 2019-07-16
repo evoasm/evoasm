@@ -41,9 +41,9 @@ internal class InterpreterTest {
                                         )
         println(options.instructions.last())
         val programSet = ProgramSet(1000, options.instructions.size)
-        val programSetOutput = LongProgramSetOutput(programSet.size, programInput)
+        val programSetOutput = LongProgramSetOutput(programSet.programCount, programInput)
         val interpreter = Interpreter(programSet, programInput, programSetOutput, options = options)
-        for(i in 0 until programSet.size) {
+        for(i in 0 until programSet.programCount) {
             for (j in 0 until programSet.programSize) {
                 programSet[i, j] = interpreter.getOpcode(j)
             }
@@ -72,7 +72,7 @@ internal class InterpreterTest {
                                          gp64OperandRegisters = operandRegisters(3, Interpreter.GP_REGISTERS),
                                          unsafe = false)
         val programSet = ProgramSet(1, programSize)
-        val programSetOutput = LongProgramSetOutput(programSet.size, programInput)
+        val programSetOutput = LongProgramSetOutput(programSet.programCount, programInput)
         val interpreter = Interpreter(programSet, programInput, programSetOutput, options = options)
         for (j in 0 until programSet.programSize) {
             programSet[0, j] = interpreter.getOpcode(AddRm64R64, RAX, RBX)!!
@@ -144,7 +144,7 @@ internal class InterpreterTest {
                                          unsafe = false
                                         )
         val programSet = ProgramSet(2, programSize)
-        val programSetOutput = LongProgramSetOutput(programSet.size, programInput)
+        val programSetOutput = LongProgramSetOutput(programSet.programCount, programInput)
         val interpreter = Interpreter(programSet, programInput, programSetOutput, options = options)
 
         for (i in 0 until programSet.programSize) {
@@ -182,7 +182,7 @@ internal class InterpreterTest {
                                          moveInstructions = listOf(VmovdqaYmmYmmm256),
                                          unsafe = false)
         val programSet = ProgramSet(2, programSize)
-        val programSetOutput = ByteVectorProgramSetOutput(programSet.size, programInput, VectorSize.BITS_256)
+        val programSetOutput = ByteVectorProgramSetOutput(programSet.programCount, programInput, VectorSize.BITS_256)
         val interpreter = Interpreter(programSet, programInput, programSetOutput, options = options)
 
         val interpreterMoveInstruction = interpreter.getOpcode(VmovdqaYmmYmmm256, YMM1, YMM0)!!
@@ -225,7 +225,7 @@ internal class InterpreterTest {
                                          moveInstructions = listOf(VmovdqaYmmYmmm256),
                                          unsafe = false)
         val programSet = ProgramSet(2, programSize)
-        val programSetOutput = IntVectorProgramSetOutput(programSet.size, programInput, VectorSize.BITS_256)
+        val programSetOutput = IntVectorProgramSetOutput(programSet.programCount, programInput, VectorSize.BITS_256)
         val interpreter = Interpreter(programSet, programInput, programSetOutput, options = options)
 
         val interpreterMoveInstruction = interpreter.getOpcode(VmovdqaYmmYmmm256, YMM1, YMM0)!!
@@ -267,7 +267,7 @@ internal class InterpreterTest {
                                          moveInstructions = listOf(VmovapsYmmYmmm256),
                                          unsafe = false)
         val programSet = ProgramSet(2, programSize)
-        val programSetOutput = FloatVectorProgramSetOutput(programSet.size, programInput, VectorSize.BITS_256)
+        val programSetOutput = FloatVectorProgramSetOutput(programSet.programCount, programInput, VectorSize.BITS_256)
         val interpreter = Interpreter(programSet, programInput, programSetOutput, options = options)
 
         val interpreterMoveInstruction = interpreter.getOpcode(VmovapsYmmYmmm256, YMM1, YMM0)!!
@@ -313,7 +313,7 @@ internal class InterpreterTest {
                                          unsafe = false)
 
         val programSet = ProgramSet(2, programSize)
-        val programSetOutput = DoubleProgramSetOutput(programSet.size, programInput)
+        val programSetOutput = DoubleProgramSetOutput(programSet.programCount, programInput)
         val interpreter = Interpreter(programSet, programInput, programSetOutput, options = options)
 
         val opcode = interpreter.getOpcode(AddsdXmm0To63Xmmm64, XMM0, XMM1)!!
@@ -354,7 +354,7 @@ internal class InterpreterTest {
                                          unsafe = false)
 
         val programSet = ProgramSet(2, programSize)
-        val programSetOutput = DoubleProgramSetOutput(programSet.size, programInput)
+        val programSetOutput = DoubleProgramSetOutput(programSet.programCount, programInput)
         val interpreter = Interpreter(programSet, programInput, programSetOutput, options = options)
 
         println("OUTPUT SIZE ${programSetOutput.size}")

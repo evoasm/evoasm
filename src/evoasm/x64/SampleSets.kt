@@ -6,7 +6,7 @@ class LongSampleSet(inputArity: Int, vararg values : Long) : NumberSampleSet<Lon
     private val inputValues : LongArray
 
     init {
-        // size = values.size / rowLength
+        // programCount = values.programCount / rowLength
         outputValues = LongArray(size){ values[elementsPerRow * it + inputArity] }
         inputValues = LongArray(inputArity * size) {
             val row = it / inputArity
@@ -31,7 +31,7 @@ class FloatSampleSet(inputArity: Int, vararg values : Float) : NumberSampleSet<F
     private val inputValues : FloatArray
 
     init {
-        // size = values.size / rowLength
+        // programCount = values.programCount / rowLength
         outputValues = FloatArray(size){ values[elementsPerRow * it + inputArity] }
         inputValues = FloatArray(inputArity * size) {
             val row = it / inputArity

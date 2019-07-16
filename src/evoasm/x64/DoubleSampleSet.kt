@@ -5,7 +5,7 @@ class DoubleSampleSet(inputArity: Int, vararg values : Double) : NumberSampleSet
     private val inputValues : DoubleArray
 
     init {
-        // size = values.size / rowLength
+        // programCount = values.programCount / rowLength
         outputValues = DoubleArray(size){ values[elementsPerRow * it + inputArity] }
         inputValues = DoubleArray(inputArity * size) {
             val row = it / inputArity
