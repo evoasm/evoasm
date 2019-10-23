@@ -1,8 +1,13 @@
 package evoasm.x64
 
 import kasm.x64.*
+import java.util.logging.Logger
 
-class IntronEliminator(val program: Program, val outputRegister: XmmRegister, val outputRange: BitRange, val interpreter: Interpreter) {
+class IntronEliminator(val program: Program, val outputRegister: Register, val outputRange: BitRange, val interpreter: Interpreter) {
+
+    companion object {
+        val LOGGER = Logger.getLogger(IntronEliminator::class.java.name)
+    }
 
 //    private val markedGpRegister64 = enumSetOf<GpRegister64>()
     private val uncoveredRegisters = mutableMapOf<Register, BitRange>()
@@ -86,22 +91,22 @@ class IntronEliminator(val program: Program, val outputRegister: XmmRegister, va
     fun run() : Program {
         for(i in program.size - 1 downTo 0) {
             val opcode = program[i]
-            println("handling opc ${opcode}")
+            LOGGER.fine("handling opcode ${opcode}")
             val interpreterInstruction = interpreter.getInstruction(opcode)!!
 //            operandRegisters = interpreterInstruction.instructionParameters
             instructionTracer.currentInstructionIndex = i
             interpreterInstruction.instruction.trace(instructionTracer, interpreterInstruction.instructionParameters)
         }
         val intronFreeProgramSize = markedInstructionIndices.count { it }
-        val p = Program(intronFreeProgramSize)
+        val program = Program(intronFreeProgramSize)
         markedInstructionIndices.foldIndexed(0) { sourceIndex, destinationIndex, marked ->
             if(marked) {
-                p[destinationIndex] = program[sourceIndex]
+                program[destinationIndex] = this.program[sourceIndex]
                 destinationIndex + 1
             } else {
                 destinationIndex
             }
         }
-        return p
+        return program
     }
 }

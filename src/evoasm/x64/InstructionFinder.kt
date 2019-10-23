@@ -46,7 +46,10 @@ class InstructionFinder<T : Number>(inputArity: Int, vararg values: T) {
             instructions.add(instruction)
         }
 
-        println("FOUND: $instructions")
+        println("FOUND ${instructions.size} instructions:")
+        instructions.forEach {
+            println("\t${it.instruction.toString()}")
+        }
     }
 
     private fun accept(t: T, last: T): Boolean {
@@ -56,24 +59,17 @@ class InstructionFinder<T : Number>(inputArity: Int, vararg values: T) {
 }
 
 fun main() {
-    val f = InstructionFinder<Long>(1,
+    val finder = InstructionFinder<Long>(1,
                               0b0111, 3,
            0b1, 1,
            0b1111, 4,
            0b11111, 5)
-    f.find()
+    finder.find()
 
-    val f2 = InstructionFinder<Double>(1,
-                                       4.0, 2.0,
-                                       16.0, 4.0,
-                                       100.0, 10.0,
-                                       144.0, 12.0)
-    f2.find()
-
-    val f3 = InstructionFinder<Double>(2,
-                                       2.0, 2.0, 4.0,
-                                       16.0, 4.0, 20.0,
-                                       100.0, 10.0, 110.0,
-                                       144.0, 12.0, 156.0)
-    f3.find()
+    val finder2 = InstructionFinder<Long>(2,
+                                       2, 2, 4,
+                                       16, 4, 20,
+                                       100, 10, 110,
+                                       144, 12, 156)
+    finder2.find()
 }

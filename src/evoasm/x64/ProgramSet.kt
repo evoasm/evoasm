@@ -5,27 +5,15 @@ import kasm.CodeModel
 import kasm.NativeBuffer
 import kasm.address
 import kasm.x64.Assembler
-
-//abstract class CompiledProgram() {
-//
-//}
-
-//abstract class NumberCompiledProgram<T: Number>(val inputArity: Int) : CompiledProgram() {
-//    abstract val programSetInput : NumberProgramSetInput<T>
-//    abstract val programSetOutput : NumberProgramSetOutput<T>
-//
-//    operator fun invoke(vararg T: arguments) : T {
-//
-//    }
-//}
-
-class Compiler() {
-
-}
+import java.util.logging.Logger
 
 class CompiledNumberProgram<T: Number> internal constructor(program: Program, interpreter: Interpreter, val programSetInput: NumberProgramSetInput<T>, val programSetOutput: NumberProgramSetOutput<T>) {
 
     val buffer = NativeBuffer(1024)
+
+    companion object {
+        val LOGGER = Logger.getLogger(CompiledNumberProgram::class.java.name)
+    }
 
     init {
         compile(program, interpreter)
@@ -49,9 +37,9 @@ class CompiledNumberProgram<T: Number> internal constructor(program: Program, in
         arguments.forEachIndexed {index, argument ->
             programSetInput[0, index] = argument
         }
-        println(buffer.toByteString())
+        LOGGER.finer(buffer.toByteString())
         buffer.setExecutable(true)
-        println("executing compiled program")
+        LOGGER.fine("executing compiled program")
         buffer.execute()
         return programSetOutput[0, 0]
     }
@@ -100,7 +88,7 @@ class ProgramSet(val programCount: Int, val programSize: Int, val threadCount: I
     fun getAddress(threadIndex: Int): Address {
         val offset = (threadIndex * perThreadInstructionCountWithHalt * Short.SIZE_BYTES).toULong()
         val address = codeBuffer.address + offset
-        println("address: $address, offset: $offset, threadIndex: $threadIndex, bufferSize: ${codeBuffer.byteBuffer.capacity()}")
+        LOGGER.finest("address: $address, offset: $offset, threadIndex: $threadIndex, bufferSize: ${codeBuffer.byteBuffer.capacity()}")
         return address
     }
 
@@ -109,8 +97,7 @@ class ProgramSet(val programCount: Int, val programSize: Int, val threadCount: I
     }
 
     companion object {
-//        val HALT_INSTRUCTION = InterpreterOpcode(0U)
-//        val END_INSTRUCTION = InterpreterOpcode(2U)
+        val LOGGER = Logger.getLogger(ProgramSet::class.java.name)
     }
 
     internal fun initialize(haltOpcode: InterpreterOpcode, endOpcode: InterpreterOpcode) {
@@ -131,7 +118,7 @@ class ProgramSet(val programCount: Int, val programSize: Int, val threadCount: I
             }
 
             val haltOffset = threadIndex * perThreadInstructionCountWithHalt + perThreadInstructionCountWithHalt - 1
-            println("setting halt at $haltOffset");
+            LOGGER.finer("setting halt at $haltOffset");
             shortBuffer.put(haltOffset, haltOpcode.code.toShort())
         }
     }

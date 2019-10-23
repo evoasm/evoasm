@@ -1,12 +1,10 @@
 package evoasm.x64
 
 import evoasm.measureTimeSeconds
-import kasm.x64.BitRange
-import kasm.x64.XmmRegister
 import evoasm.FastRandom
-import kasm.x64.VroundssXmmXmmXmmm32Imm8
-import java.util.concurrent.Callable
-import java.util.concurrent.Executors
+import kasm.x64.*
+import java.util.logging.Logger
+import kotlin.random.Random
 
 interface SelectionOperator {
     fun select()
@@ -46,6 +44,11 @@ abstract class VectorSampleSet<T : Number>(val inputArity: Int,
 
 
 abstract class AbstractPopulation(val options: PopulationOptions) {
+
+    companion object {
+        val LOGGER = Logger.getLogger(AbstractPopulation::class.java.name)
+    }
+
     private val wonTournamentCounts = ByteArray(options.size)
     private val winnerIndices = IntArray(options.size / options.tournamentSize)
     //    protected val random = Random(options.seed)
@@ -62,7 +65,7 @@ abstract class AbstractPopulation(val options: PopulationOptions) {
     }
 
     protected abstract val interpreter: Interpreter // = Interpreter(programSet, programSetInput, programSetOutput, options = options.interpreterOptions)
-    private val bestProgram = Program(options.programSize)
+    internal val bestProgram = Program(options.programSize)
     private var currentGeneration = 0
 
     private fun minorCycle() {
@@ -97,8 +100,7 @@ abstract class AbstractPopulation(val options: PopulationOptions) {
                 programSet[i, j] = interpreterInstruction
             }
         }
-
-//        println(programSet.toString(interpreter))
+        LOGGER.finer(programSet.toString(interpreter))
     }
 
     private fun minorSelect(): Boolean {
@@ -161,58 +163,32 @@ abstract class AbstractPopulation(val options: PopulationOptions) {
         }
     }
 
-    private var runS: Double = 0.0
-    private var gen = 0
-
-    private var threadPool = Executors.newFixedThreadPool(options.interpreterOptions.threadCount)
-    private var taskList = (0 until options.interpreterOptions.threadCount).map {
-        Callable<Boolean> {
-//            println("running interpreter ${it}")
-            val t = measureTimeSeconds {
-                interpreter.run(it)
-            }
-            println("threaded eval took $t")
-//            println("/running interpreter ${it}")
-            true
-        }
-    }
-
-    fun shutdown() {
-        threadPool.shutdown()
-    }
+    private var meanInterpreterRuntime: Double = 0.0
+    private var generationCounter = 0
 
     fun evaluate() {
-        gen++
-
-        var thisRunS = 0.0
+        generationCounter++
+        var interpreterRuntime = 0.0
         if (interpreter.haveMultipleThreads) {
-            thisRunS = measureTimeSeconds {
-                val results = threadPool.invokeAll(taskList)
-                for(result in results) {
-                    result.get()
-                }
-//                interpreter.run(0)
-//                interpreter.run(1)
+            interpreterRuntime = measureTimeSeconds {
+                  interpreter.runParallel()
             }
         } else {
-
-            thisRunS = measureTimeSeconds {
+            interpreterRuntime = measureTimeSeconds {
                 interpreter.run()
             }
-            println("single eval took $thisRunS")
+//            println("single eval took $thisRunS")
         }
-        runS = (1.0 / gen) * thisRunS + (1.0 - (1.0 / gen)) * runS
+        meanInterpreterRuntime = (1.0 / generationCounter) * interpreterRuntime + (1.0 - (1.0 / generationCounter)) * meanInterpreterRuntime
 
-        val lossS = measureTimeSeconds {
+        LOGGER.info("Interpreter took $interpreterRuntime (mean $meanInterpreterRuntime)")
+
+        val lossCalculationRuntime = measureTimeSeconds {
             calculateLosses()
             updateBest()
         }
 
-//        println("Interpreter took $runS ($thisRunS)")
-//        println("-------------------------")
-//        println(bestLoss)
-//        println("AVGLOSS: ${losses.filter { it.isFinite() }.average()}")
-////        println("LOSSES: ${losses.toList()}")
+        LOGGER.info("loss calculations took $lossCalculationRuntime")
     }
 
 
@@ -238,34 +214,24 @@ abstract class AbstractPopulation(val options: PopulationOptions) {
     }
 
     fun printBest() {
+        LOGGER.info("BEFORE intron elimination")
         bestProgram.forEach {
-            println("${it}: ${interpreter.getInstruction(it)}")
-            println("${it}: ${interpreter.disassemble(it).contentDeepToString()}")
+            LOGGER.info(interpreter.disassemble(it)[1].joinToString(" "))
         }
 
         println()
-        val ie = IntronEliminator(bestProgram, XmmRegister.XMM0, BitRange.BITS_0_63, interpreter)
-        val iep = ie.run()
-        iep.forEach {
-            println("${it}: ${interpreter.getInstruction(it)}")
+        val outputRegister = when(this) {
+            is FloatPopulation -> XmmRegister.XMM0
+            is DoubleVectorPopulation -> YmmRegister.YMM0
+            else -> throw RuntimeException()
+        } as Register
+        val intronEliminator = IntronEliminator(bestProgram, outputRegister, BitRange.BITS_0_63, interpreter)
+        val intronEliminatedProgram = intronEliminator.run()
+        LOGGER.info("AFTER intron elimination")
+        intronEliminatedProgram.forEach {
+            println(interpreter.disassemble(it)[1].joinToString(" "))
         }
-
-        compile(iep)
-
-    }
-
-    fun compile(program: Program) {
-        println(interpreter.buffer.toByteString())
-        val programSetInput = FloatProgramSetInput(1, interpreter.input.arity)
-        val programSetOutput = FloatProgramSetOutput(1, programSetInput)
-        val compiledProgram = CompiledNumberProgram(program, interpreter, programSetInput, programSetOutput)
-        for (i in 1..5) {
-            println("f($i) = ${compiledProgram.run(i.toFloat())}")
-        }
-    }
-
-    fun compileBest() {
-        compile(bestProgram)
+        //  compile(intronEliminatedProgram)
     }
 
     protected abstract fun calculateLosses()
@@ -273,7 +239,6 @@ abstract class AbstractPopulation(val options: PopulationOptions) {
 
     private fun minorReproduce() {
         val tournamentSize = options.tournamentSize
-//        println(winnerIndices.contentToString())
         for (i in winnerIndices.indices) {
             val winnerIndex = winnerIndices[i]
             val baseIndex = i * tournamentSize
@@ -298,33 +263,7 @@ abstract class AbstractPopulation(val options: PopulationOptions) {
         }
 
         mutatePrograms()
-        //!evoasm_deme_mutate_kernel(deme, i);
-
-//        while(true) {
-//            while(survivorIndex < populationSize && wonTournamentCounts[survivorIndex] <= 1) survivorIndex++;
-//            if(survivorIndex >= populationSize) break;
-//
-//            while(deadIndex < populationSize && wonTournamentCounts[deadIndex] != 0.toByte()) deadIndex++;
-//
-//            // This check should not be necessary, mathematically,
-//            // for each survivor there must be a corresponding dead
-//            // as we only let individuals survive if they won > 1 tournaments and there
-//            // are < deme_size tournaments in total
-//            // just to be sure let's add an assert
-//            //    if(dead_idx >= deme_size) break;
-//            assert(deadIndex < populationSize);
-//
-//
-//            //!!evoasm_deme_copy_kernel(deme, surviv_idx, dead_idx);
-//            //!!evoasm_deme_mutate_kernel(deme, dead_idx);
-//
-//            wonTournamentCounts[survivorIndex]--;
-//            deadIndex++;
-//        }
-
     }
-
-//    protected val maxInstructionOpcode = options.interpreterOptions.instructions.size
 
     private fun mutateOpcode(interpreterOpcode: InterpreterOpcode,
                              random: FastRandom,
@@ -346,11 +285,39 @@ abstract class AbstractPopulation(val options: PopulationOptions) {
 
         programSet.transform { interpreterOpcode: InterpreterOpcode, threadIndex: Int, programIndex: Int, instructionIndex: Int ->
             if (interpreterOpcode == interpreter.getHaltOpcode()) {
-                println("${threadIndex} ${programIndex}, ${instructionIndex}, ${interpreterOpcode}");
+                LOGGER.warning("${threadIndex} ${programIndex}, ${instructionIndex}, ${interpreterOpcode}");
                 throw RuntimeException()
             }
             mutateOpcode(interpreterOpcode, random, mutationRate, opcodeCount)
         }
+    }
+
+    fun run(maxGenerations: Int = 35_000) : Boolean {
+        var found = false
+        var generations = 0
+        val seconds = measureTimeSeconds {
+            for (i in 0 until maxGenerations) {
+                evaluate()
+                nextGeneration()
+                generations = i
+                if (i % 100 == 0) {
+                    LOGGER.info("best loss: ${bestLoss}");
+                }
+                if (bestLoss == 0f) {
+                    found = true
+                    break
+                }
+            }
+        }
+
+        if (found) {
+            LOGGER.info("Found solution after ${seconds} ($generations generations)")
+            printBest()
+        } else {
+            LOGGER.info("no solution found after ${seconds} ($generations generations)")
+        }
+
+        return found;
     }
 
 }
@@ -367,8 +334,6 @@ abstract class NumberPopulation<T : Number>(val sampleSet: NumberSampleSet<T>,
                 val actualOutput = programSetOutput[programIndex, inputIndex].toFloat()
                 val expectedOutput = sampleSet.getOutputValue(inputIndex).toFloat()
 
-                //println("ACTIAL OUTPUT: $actualOutput $expectedOutput")
-
                 loss += Math.abs(expectedOutput - actualOutput)
             }
 
@@ -376,7 +341,7 @@ abstract class NumberPopulation<T : Number>(val sampleSet: NumberSampleSet<T>,
                 for (inputIndex in 0 until programSetInput.size) {
                     val actualOutput = programSetOutput[programIndex, inputIndex].toFloat()
                     val expectedOutput = sampleSet.getOutputValue(inputIndex).toFloat()
-                    println("ACTIAL OUTPUT: $actualOutput $expectedOutput")
+                    LOGGER.fine("output (actual, expected): $actualOutput, $expectedOutput")
                 }
             }
 
@@ -386,7 +351,6 @@ abstract class NumberPopulation<T : Number>(val sampleSet: NumberSampleSet<T>,
     }
 
     protected fun loadInput(sampleSet: NumberSampleSet<T>) {
-        println(sampleSet)
         for (i in 0 until sampleSet.size) {
             for (j in 0 until sampleSet.inputArity) {
                 programSetInput[i, j] = sampleSet.getInputValue(i, j)
@@ -416,7 +380,6 @@ abstract class VectorPopulation<T : Number>(val sampleSet: VectorSampleSet<T>,
     }
 
     protected fun loadInput(sampleSet: VectorSampleSet<T>) {
-        println(sampleSet)
         for (i in 0 until sampleSet.size) {
             for (j in 0 until sampleSet.inputArity) {
                 for (k in 0 until sampleSet.elementsInVector) {
@@ -439,74 +402,5 @@ class PopulationOptions(val size: Int,
                         val maxOffspringRatio: Double = 0.3) {
 
 
-}
-
-fun main() {
-
-    val options = PopulationOptions(
-            32_000,
-            4,
-            123456,
-            12,
-            InterpreterOptions(instructions = InstructionGroup.ARITHMETIC_SS_AVX_XMM_INSTRUCTIONS.instructions.filterNot { it == VroundssXmmXmmXmmm32Imm8 },
-                               moveInstructions = listOf(),
-                               compressOpcodes = false,
-                               forceMultithreading = false,
-                               threadCount = 2,
-                               unsafe = true),
-            0.01f,
-            demeSize = 10,
-            majorGenerationFrequency = 1,
-            maxOffspringRatio = 0.05
-                                   )
-
-    val lossFunction = L1Norm()
-
-    val sampleSet = FloatSampleSet(1,
-                                   0.0f, 0.0f,
-                                   0.5f, 1.0606601717798212f,
-                                   1.0f, 1.7320508075688772f,
-                                   1.5f, 2.5248762345905194f,
-                                   2.0f, 3.4641016151377544f,
-                                   2.5f, 4.541475531146237f,
-                                   3.0f, 5.744562646538029f,
-                                   3.5f, 7.0622234459127675f,
-                                   4.0f, 8.48528137423857f,
-                                   4.5f, 10.00624804809475f,
-                                   5.0f, 11.61895003862225f
-                                  )
-
-
-    val population = FloatPopulation(sampleSet, options)
-    var found = false
-    var generations = 0
-    val seconds = measureTimeSeconds {
-
-        for (i in 0 until 35_000) {
-            population.evaluate()
-            population.nextGeneration()
-            if (i % 100 == 0) {
-                println(population.bestLoss);
-            }
-            if (population.bestLoss == 0f) {
-                found = true
-                generations = i
-                break
-            }
-        }
-    }
-
-
-
-    if (found) {
-        println("Found after ${seconds}")
-        println("found 0, done after $generations gens")
-        population.compileBest()
-        println("ok compiled best")
-        population.printBest()
-        println("ok compiled print")
-    }
-
-    population.shutdown()
 }
 

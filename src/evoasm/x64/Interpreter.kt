@@ -6,6 +6,7 @@ import kasm.ext.log2
 import kasm.ext.toEnumSet
 import kasm.x64.*
 import kasm.x64.GpRegister64.*
+import java.util.logging.Logger
 import kotlin.IllegalArgumentException
 import kotlin.random.Random
 
@@ -66,6 +67,8 @@ class Interpreter(val programSet: ProgramSet,
                 }
             }
         }
+
+        val LOGGER = Logger.getLogger(Interpreter::class.java.name)
 
         private const val INSTRUCTION_ALIGNMENT = 8 // bytes
         private const val OPCODE_SIZE = Short.SIZE_BYTES // bytes
@@ -255,9 +258,6 @@ class Interpreter(val programSet: ProgramSet,
 
         override fun endTracing() {
             operandRegisterSequence = getOperandRegisterSequence()
-//            getOperandRegisterSequence<Register>().forEach {
-//                println(it)
-//            }
         }
 
         override fun beginTracing() {
@@ -509,7 +509,7 @@ class Interpreter(val programSet: ProgramSet,
     val opcodeCount get() = instructionCounter - internalInstructionCount
     private var haltLinkPoint: Assembler.JumpLinkPoint? = null
     private var firstInstructionLinkPoint: Assembler.LongLinkPoint? = null
-    internal val buffer = NativeBuffer(1024 * 35, CodeModel.LARGE)
+    internal val buffer = NativeBuffer(1024 * 512, CodeModel.LARGE)
     private val assembler = Assembler(buffer)
     private var emittedNopBytes = 0
 
@@ -522,28 +522,13 @@ class Interpreter(val programSet: ProgramSet,
 
     private val instructionMap = mutableMapOf<InterpreterInstruction, InterpreterOpcode>()
 
-//    private val instructionParameters = InterpreterInstructionParameters(this)
-//    private val instructionTracer = InterpreterInstructionTracer(this)
-
-
     init {
         emit()
 
         programSet.initialize(getHaltOpcode(), getEndOpcode())
-
-//        println(instructions.contentToString())
-//        check(getEndOpcode() == ProgramSet.END_INSTRUCTION
-//             ) { "invalid end instruction (${ProgramSet.END_INSTRUCTION} should be ${getEndOpcode()})" }
-//        check(getHaltOpcode() == ProgramSet.HALT_INSTRUCTION
-//             ) { "invalid halt instruction (${ProgramSet.HALT_INSTRUCTION} should be ${getHaltOpcode()})" }
-//        programSet._init(this)
-        println(buffer.toByteString())
+        LOGGER.finer(buffer.toByteString())
         buffer.setExecutable(true)
     }
-
-//    internal fun getStartOpcode(threadIndex: Int): InterpreterOpcode {
-//        return InterpreterOpcode(instructions[0 * options.threadCount + threadIndex].toUShort());
-//    }
 
     internal fun getHaltOpcode(): InterpreterOpcode {
         return InterpreterOpcode(instructions[0].toUShort());
@@ -588,11 +573,11 @@ class Interpreter(val programSet: ProgramSet,
 
     fun disassemble(opcode: InterpreterOpcode): Array<out Array<String>> {
         val instructionIndex = instructions.asShortArray().binarySearch(opcode.code.toShort(), 0, instructionCounter)
-        println("found index ${instructions.indexOf(opcode.code)} for ${opcode.code}")
+        LOGGER.finer("found index ${instructions.indexOf(opcode.code)} for ${opcode.code}")
         require(instructionIndex >= 0) { "opcode ${opcode.code} was not found"}
         val instructionOffset = getInstructionOffset(opcode)
 
-        println("$instructionIndex")
+        LOGGER.finer("instructionIndex: $instructionIndex")
 
         val instructionEndOffset = if(instructionIndex + 1 < instructionCounter) {
             getInstructionOffset(instructions[instructionIndex + 1])
@@ -711,8 +696,10 @@ class Interpreter(val programSet: ProgramSet,
                 } else {
                     if(threadIndex == 0) {
                         mov(COUNTERS_REGISTER, input.size)
+                        nop(3)
                     } else {
-                        mov(COUNTERS_REGISTER, input.size or ((threadIndex * programSet.perThreadProgramCount) shl 16))
+                        val countersValue : Long = input.size.toLong() or ((threadIndex.toLong() * programSet.perThreadProgramCount.toLong()) shl 16)
+                        mov(COUNTERS_REGISTER, countersValue)
                     }
                 }
                 input.emitLoad(assembler)
@@ -722,7 +709,7 @@ class Interpreter(val programSet: ProgramSet,
                 if(threadPrologSize == -1) {
                     threadPrologSize = thisThreadPrologSize
                 } else {
-                    check(threadPrologSize == thisThreadPrologSize)
+                    check(threadPrologSize == thisThreadPrologSize) { "thread prologs must have equal size ($threadPrologSize != $thisThreadPrologSize"}
                 }
             }
 
@@ -762,7 +749,7 @@ class Interpreter(val programSet: ProgramSet,
             emitInterpreterProlog()
 
             val firstInstructionAddress = buffer.address.toLong() + buffer.position()
-            println("First inst addr ${Address(firstInstructionAddress.toULong())}")
+            LOGGER.fine("First inst addr ${Address(firstInstructionAddress.toULong())}")
             firstInstructionLinkPoint!!.link(firstInstructionAddress)
 
             // IMPORTANT: must be first instructions, in this order
@@ -774,12 +761,12 @@ class Interpreter(val programSet: ProgramSet,
             emitInterpreterEpilog()
         }
 
-        println("Average instruction bufferSize: ${assembler.buffer.position() / options.instructions.size.toDouble()}")
+        LOGGER.info("Average instruction bufferSize: ${assembler.buffer.position() / options.instructions.size.toDouble()}")
     }
 
 
     private fun emitInstructions() {
-        println("emitting ${options.instructions.size} instructions")
+        LOGGER.finer("emitting ${options.instructions.size} instructions")
         options.instructions.forEach {
             if (it in DIV_INSTRUCTIONS && options.safeDivision) {
                 for(divisorInstruction in getDivisorInstructions(it)) {
@@ -801,9 +788,6 @@ class Interpreter(val programSet: ProgramSet,
                         instructionMap[InterpreterInstruction(it, InterpreterInstructionParameters(*operandRegisters))] = interpreterOpcode
                     }
                 }
-
-                println("")
-                println("")
             }
 
         }
@@ -985,14 +969,8 @@ class Interpreter(val programSet: ProgramSet,
     }
 
     fun run(threadIndex: Int) {
-//        println("instruction counter: $instructionCounter")
-        println("running address is ${buffer.address}")
-//        println("byte code address is ${programSet.byteBuffer.address}")
-//        println("output address is ${output.buffer.address}/${output.buffer.capacity()}")
-//        println("first instruction is ${programSet.byteBuffer.asShortBuffer().get(0)}")
-//        println("sec instruction is ${programSet.byteBuffer.asShortBuffer().get(1)}")
-//        println("third instruction is ${programSet.byteBuffer.asShortBuffer().get(2)}")
-//        println("instruction address ${instructions.contentToString()}")
+        LOGGER.fine("running address is ${buffer.address}")
+
         if(options.unsafe) {
             if(haveMultipleThreads) {
                 buffer.executeUnsafe(threadIndex.toLong())
@@ -1005,6 +983,14 @@ class Interpreter(val programSet: ProgramSet,
             } else {
                 buffer.execute()
             }
+        }
+    }
+
+    fun runParallel() {
+        if(options.unsafe) {
+            buffer.executeParallelUnsafe(options.threadCount)
+        } else {
+            buffer.executeParallel(options.threadCount)
         }
     }
 
@@ -1030,20 +1016,6 @@ class Interpreter(val programSet: ProgramSet,
         val instructionsPerSecond = (programSet.instructionCount * input.size) / elapsedSeconds
         return RunMeasurements(elapsedSeconds, instructionsPerSecond)
     }
-
 }
 
 
-fun main() {
-//    val programInput = LongProgramSetInput(1, )
-//    programInput.set(0, 0x1L)
-//    val programSet = ProgramSet(1, 1)
-//    val programSetOutput = LongProgramSetOutput(programSet)
-//    val interpreter = Interpreter(programSet, programInput, programSetOutput)
-//    for (i in 0 until programSet.programSize) {
-//        programSet.set(0, i, interpreter.getOpcode(0).also { println("setting instr ${it}") })
-//    }
-//    interpreter.run()
-//    println(programSetOutput.getLong(0))
-
-}

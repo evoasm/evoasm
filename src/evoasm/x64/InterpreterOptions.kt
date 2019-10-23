@@ -91,7 +91,7 @@ class InterpreterOptions(instructions: List<Instruction> = defaultInstructions,
             instructions.filter {
                 val supported = it.isSupported()
 
-                if (!supported) println("filtering out unsupported instruction ${it}")
+                if (!supported) Interpreter.LOGGER.info("filtering out unsupported instruction ${it}")
 
 
                 supported

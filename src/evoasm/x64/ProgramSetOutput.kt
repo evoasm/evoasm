@@ -4,8 +4,14 @@ import kasm.Address
 import kasm.Structure
 import kasm.ext.log2
 import kasm.x64.*
+import java.util.logging.Logger
 
 abstract class ProgramSetOutput(programSetSize: Int, programSetInput: ProgramSetInput) {
+
+    companion object {
+        val LOGGER = Logger.getLogger(ProgramSetOutput::class.java.name)
+    }
+
     protected abstract val structure: Structure
     internal val buffer get() = structure.buffer
     val size = programSetInput.size
@@ -30,7 +36,7 @@ abstract class ProgramSetOutput(programSetSize: Int, programSetInput: ProgramSet
                 sal(Interpreter.SCRATCH_REGISTER2, log2(elementSize).toByte())
                 sub(Interpreter.SCRATCH_REGISTER1,
                     Interpreter.SCRATCH_REGISTER2)
-                println("OUTPUT ADDRESS IS ${address}")
+                LOGGER.fine("output address is ${address}")
                 mov(Interpreter.SCRATCH_REGISTER2, address.toLong() + size * elementSize)
                 add(Interpreter.SCRATCH_REGISTER1,
                     Interpreter.SCRATCH_REGISTER2)

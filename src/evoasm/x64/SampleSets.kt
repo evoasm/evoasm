@@ -30,6 +30,23 @@ class FloatSampleSet(inputArity: Int, vararg values : Float) : NumberSampleSet<F
     private val outputValues : FloatArray
     private val inputValues : FloatArray
 
+
+    companion object {
+        fun generate(from: Float, to:Float, step: Float, action: (Float) -> Float): FloatSampleSet {
+            val count = ((to - from) / step).toInt() + 1
+            val array = FloatArray(2 * count)
+            for(i in 0 until count) {
+                val input = from + i * step
+                array[2 * i] = input
+                array[2 * i + 1] = action(input)
+                require(array[i] <= to) {"${array[i]} <= $to"}
+            }
+            println(array.contentToString())
+            return FloatSampleSet(1, *array)
+        }
+    }
+
+
     init {
         // programCount = values.programCount / rowLength
         outputValues = FloatArray(size){ values[elementsPerRow * it + inputArity] }
